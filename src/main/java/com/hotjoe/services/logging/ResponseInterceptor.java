@@ -4,7 +4,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
@@ -12,8 +16,15 @@ import javax.ws.rs.ext.Provider;
 import javax.ws.rs.ext.WriterInterceptor;
 import javax.ws.rs.ext.WriterInterceptorContext;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.opentracing.Span;
+import io.opentracing.Tracer;
+import io.opentracing.util.GlobalTracer;
 
 
 /**
@@ -51,7 +62,28 @@ public class ResponseInterceptor implements WriterInterceptor {
             }
 
             if( mediaType.getType().startsWith("text") || mediaType.equals(MediaType.APPLICATION_JSON_TYPE)) {
-                logger.info("response body: " + baos.toString(StandardCharsets.UTF_8));
+                String content = baos.toString(StandardCharsets.UTF_8);
+                logger.info("response body: " + content);
+                // try {
+                //     ObjectMapper mapper = new ObjectMapper();
+                //     JsonNode actualObj = mapper.readTree(content);
+                //     if (actualObj.isArray()) {
+                //         // FIXME... this is temporary...
+                //         actualObj = actualObj.get(0);
+                //     }
+                //     Iterator<Entry<String, JsonNode>> fields = actualObj.fields();
+                //     List<String> actualList = new ArrayList<String>();
+                //     fields.forEachRemaining(arg0 -> actualList.add(arg0.getKey()));
+                //     String actualString = actualList.stream().collect(Collectors.joining());
+                //     logger.debug("Schema to be set as tag to current span");
+                //     Tracer tracer = GlobalTracer.get();
+                //     logger.debug("Global tracer: " + tracer);
+                //     Span activeSpan = tracer.activeSpan();
+                //     logger.debug("Active span: " + activeSpan);
+                //     activeSpan.setTag("schema", actualString);
+                // } catch (Exception e) {
+                //     logger.debug("Well... I guess this is not JSON...");
+                // }
             }
             else {
                 logger.info("response body is of type " + mediaType.toString() + " and it starts with these hex chars: " + bytesToHex(baos.toByteArray(), 25));

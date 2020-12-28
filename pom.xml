@@ -17,6 +17,33 @@
         <version.wildfly>20.0.1.Final</version.wildfly>
     </properties>
 
+    <repositories>
+        <repository>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>kensu</id>
+            <name>kensu</name>
+            <url>https://public.usnek.com/n/repository/maven-public/</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>bintray-opentracing-maven</id>
+            <name>bintray-plugins</name>
+            <url>https://dl.bintray.com/opentracing/maven</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>kensu</id>
+            <name>kensu</name>
+            <url>https://public.usnek.com/n/repository/maven-public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+
     <dependencies>
         <dependency>
             <groupId>javax</groupId>
@@ -113,6 +140,83 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+
+
+
+        <!-- UPDATED -->
+        <dependency>
+            <groupId>io.opentracing.contrib</groupId>
+            <artifactId>opentracing-jaxrs2-discovery</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jaegertracing</groupId>
+            <artifactId>jaeger-client</artifactId>
+            <version>1.5.0</version>
+        </dependency>
+
+        <!-- Import MicroProfile APIs -->
+
+        <!-- <dependency>
+            <groupId>org.eclipse.microprofile.config</groupId>
+            <artifactId>microprofile-config-api</artifactId>
+            <scope>provided</scope>
+            <version>1.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.microprofile.opentracing</groupId>
+            <artifactId>microprofile-opentracing-api</artifactId>
+            <scope>provided</scope>
+            <version>1.3.3</version>
+        </dependency> -->
+
+        <dependency>
+            <groupId>io.opentracing</groupId>
+            <artifactId>opentracing-api</artifactId>
+            <version>0.33.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.opentracing.contrib</groupId>
+            <artifactId>opentracing-tracerresolver</artifactId>
+            <version>0.1.8</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.opentracing.contrib</groupId>
+            <artifactId>span-reporter</artifactId>
+            <version>0.3.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>5.4.26.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-entitymanager</artifactId>
+            <version>5.4.26.Final</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.kensio.third.contrib</groupId>
+            <artifactId>opentracing-jdbc</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>ru.yandex.clickhouse</groupId>
+            <artifactId>clickhouse-jdbc</artifactId>
+            <version>0.2.4</version>
+        </dependency>
+	
+    	<dependency>
+			<groupId>io.kensu.dam</groupId>
+			<!-- <artifactId>kensu-dam-java-client-jackson-2-10-0</artifactId> -->
+			<artifactId>kensu-dam-java-client</artifactId>
+			<version>1.1.0</version>
+		</dependency>
     </dependencies>
 
     <dependencyManagement>
@@ -128,6 +232,7 @@
     </dependencyManagement>
 
     <build>
+
         <testResources>
             <testResource>
                 <directory>src/test/resources</directory>
