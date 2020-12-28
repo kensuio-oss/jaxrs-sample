@@ -146,7 +146,7 @@
         <!-- UPDATED -->
         <dependency>
             <groupId>io.opentracing.contrib</groupId>
-            <artifactId>opentracing-jaxrs2-discovery</artifactId>
+            <artifactId>opentracing-jaxrs2</artifactId>
             <version>1.0.0</version>
         </dependency>
         <dependency>

@@ -5,17 +5,17 @@ import io.kensu.collector.model.DamBatchBuilder;
 import io.kensu.collector.model.DamDataCatalogEntry;
 import io.kensu.collector.model.DamSchemaUtils;
 import io.kensu.collector.model.SimpleDamLineageBuilder;
-// import io.kensu.jdbc.parser.DamJdbcQueryParser;
-// import io.kensu.jdbc.parser.ReferencedSchemaFieldsInfo;
-// import io.kensu.dam.ApiClient;
-// import io.kensu.dam.ApiException;
-// import io.kensu.dam.ManageKensuDamEntitiesApi;
-// import io.kensu.dam.OfflineFileApiClient;
-// import io.kensu.dam.model.*;
-// import io.kensu.dam.model.Process;
+import io.kensu.utils.ConcurrentHashMultimap;
+import io.kensu.dam.ApiClient;
+import io.kensu.dam.ApiException;
+import io.kensu.dam.ManageKensuDamEntitiesApi;
+import io.kensu.dam.OfflineFileApiClient;
+import io.kensu.dam.model.*;
+import io.kensu.dam.model.Process;
 // import io.kensu.collector.model.datasource.HttpDatasourceNameFormatter;
 // import io.kensu.collector.model.datasource.JdbcDatasourceNameFormatter;
-// import io.kensu.utils.ConcurrentHashMultimap;
+// import io.kensu.jdbc.parser.DamJdbcQueryParser;
+// import io.kensu.jdbc.parser.ReferencedSchemaFieldsInfo;
 import io.opentracing.contrib.reporter.Reporter;
 import io.opentracing.contrib.reporter.SpanData;
 import io.opentracing.tag.Tag;
@@ -24,6 +24,7 @@ import io.opentracing.tag.Tags;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 //import static io.kensu.json.DamJsonSchemaInferrer.DAM_OUTPUT_SCHEMA_TAG;
@@ -31,18 +32,13 @@ import java.util.logging.Logger;
 public class TracerReporter implements Reporter {
     static final Logger logger = Logger.getLogger(TracerReporter.class.getName());
 
-    //private final Logger logger;
-    //protected final AbstractUrlsTransformer urlsTransformer;
-
-    //private final ConcurrentHashMultimap<SpanData> spanChildrenCache = new ConcurrentHashMultimap<>();
+    private final ConcurrentHashMultimap<SpanData> spanChildrenCache = new ConcurrentHashMultimap<>();
 
     //public TracerReporter(Logger logger, AbstractUrlsTransformer springUrlsTransformer) {
     public TracerReporter() {
-        //this.logger = logger;
-        //this.urlsTransformer = springUrlsTransformer;
     }
 
-    //protected DamProcessEnvironment damEnv = new DamProcessEnvironment();
+    protected DamProcessEnvironment damEnv = new DamProcessEnvironment();
 
     @Override
     public void start(Instant timestamp, SpanData span) {
@@ -62,27 +58,29 @@ public class TracerReporter implements Reporter {
     public void finish(Instant timestamp, SpanData span) {
         String maybeParentId = span.references.get("child_of");
         if (maybeParentId != null) {
-            //spanChildrenCache.addEntry(maybeParentId, span);
+            spanChildrenCache.addEntry(maybeParentId, span);
         } else {
             // this is the main SPAN, report all the stuff which was gathered so far
-            // DamBatchBuilder batchBuilder = new DamBatchBuilder().withDefaultLocation();
-            // PhysicalLocationRef defaultLocationRef = DamBatchBuilder.DEFAULT_LOCATION_REF;
+            DamBatchBuilder batchBuilder = new DamBatchBuilder().withDefaultLocation();
+            PhysicalLocationRef defaultLocationRef = DamBatchBuilder.DEFAULT_LOCATION_REF;
 
-            // String logMessage = createLogMessage(timestamp, "Finish", span);
-
-
-            // logger.debug(logMessage);
+            String logMessage = createLogMessage(timestamp, "Finish", span);
+            logger.fine(logMessage);
 
             // //   - http.status_code: 200
             // //   - component: java-web-servlet
             // //   - span.kind: server
             // //   - http.url: http://localhost/people/search/findByLastName
             // //   - http.method: GET
+            // //  http.request.url.path.pattern	    /v1/visit/{visitId}?outputFormat={outputFormat}
+            // //  http.request.url.path.parameters	    visitId
+            // //  http.request.url.query.parameters	outputFormat
+
             // //   - DamOutputSchema: [class FieldDef {
-            // Integer httpStatus = getTagOrDefault(Tags.HTTP_STATUS, span, 0);
-            // // FIMXE: need ability to remove param value to get URL pattern!!!
-            // String httpUrl = getTagOrDefault(Tags.HTTP_URL, span, null);
-            // String httpMethod = getTagOrDefault(Tags.HTTP_METHOD, span, null);
+            Integer httpStatus = getTagOrDefault(Tags.HTTP_STATUS, span, 0);
+            // FIMXE: need ability to remove param value to get URL pattern!!!
+            String httpUrl = getTagOrDefault(Tags.HTTP_URL, span, null);
+            String httpMethod = getTagOrDefault(Tags.HTTP_METHOD, span, null);
             // String transformedHttpUrl = urlsTransformer.transformUrl(httpMethod, httpUrl);
             // logger.warn(String.format("transformedHttpUrl: %s ( httpStatus: %d\nhttpUrl: %s\nhttpMethod: %s )", transformedHttpUrl, httpStatus, httpUrl, httpMethod));
             // if ((httpStatus >= 200) && (httpStatus < 300) && transformedHttpUrl != null && httpMethod != null) {
@@ -167,33 +165,31 @@ public class TracerReporter implements Reporter {
         }
     }
 
-    // protected void reportBatchToDam(DamBatchBuilder batchBuilder){
-    //     try {
-
-    //         ApiClient apiClient;
-    //         if (damEnv.isOffline()) {
-    //             apiClient = new OfflineFileApiClient();
-    //         } else {
-    //             String authToken = damEnv.damIngestionToken();
-    //             String serverHost = damEnv.damIngestionUrl();
-    //             apiClient = new ApiClient()
-    //                     .setBasePath(serverHost)
-    //                     .addDefaultHeader("X-Auth-Token", authToken);
-    //         }
-    //         ManageKensuDamEntitiesApi apiInstance = new ManageKensuDamEntitiesApi(apiClient);
-    //         BatchEntityReportResult result = apiInstance.reportEntityBatch(batchBuilder.getCompactedBatch());
-    //         logger.info(String.format("DAM reportEntityBatch result: %s", result));
-    //     } catch (javax.ws.rs.ProcessingException e){
-    //         if (e.getMessage().equals("Already connected")){
-    //             logger.error("Exception when calling ManageKensuDAMEntitiesApi#reportEntityBatch - " +
-    //                     "SSL verification issue:", e);
-    //         } else {
-    //             logger.error("Exception when calling ManageKensuDAMEntitiesApi#reportEntityBatch", e);
-    //         }
-    //     } catch (ApiException | RuntimeException e) {
-    //         logger.error("Exception when calling ManageKensuDAMEntitiesApi#reportEntityBatch", e);
-    //     }
-    // }
+    protected void reportBatchToDam(DamBatchBuilder batchBuilder){
+        try {
+            ApiClient apiClient;
+            if (damEnv.isOffline()) {
+                apiClient = new OfflineFileApiClient();
+            } else {
+                String authToken = damEnv.damIngestionToken();
+                String serverHost = damEnv.damIngestionUrl();
+                apiClient = new ApiClient()
+                        .setBasePath(serverHost)
+                        .addDefaultHeader("X-Auth-Token", authToken);
+            }
+            ManageKensuDamEntitiesApi apiInstance = new ManageKensuDamEntitiesApi(apiClient);
+            BatchEntityReportResult result = apiInstance.reportEntityBatch(batchBuilder.getCompactedBatch());
+            logger.info(String.format("DAM reportEntityBatch result: %s", result));
+        } catch (javax.ws.rs.ProcessingException e){
+            if (e.getMessage().equals("Already connected")){
+                logger.log(Level.SEVERE, "Exception when calling ManageKensuDAMEntitiesApi#reportEntityBatch - SSL verification issue:", e);
+            } else {
+                logger.log(Level.SEVERE, "Exception when calling ManageKensuDAMEntitiesApi#reportEntityBatch", e);
+            }
+        } catch (ApiException | RuntimeException e) {
+            logger.log(Level.SEVERE, "Exception when calling ManageKensuDAMEntitiesApi#reportEntityBatch", e);
+        }
+    }
 
     @Override
     public void log(Instant timestamp, SpanData span, Map<String, ?> fields) {
