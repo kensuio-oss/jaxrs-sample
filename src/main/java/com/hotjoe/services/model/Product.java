@@ -1,51 +1,110 @@
 package com.hotjoe.services.model;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
 
-import java.io.Serializable;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
+import javax.persistence.GeneratedValue;
+ 
+@Entity
+@Table(name="products")
+public class Product {
+    @Id
+    @Column(name = "productCode")
+    @GeneratedValue()
+    private String productCode;
+
+    @Column(name = "productName")
+    private String productName;
+
+    @ManyToOne()
+    @JoinColumn(name = "productLine")
+    private ProductLine productLine;
+    @Column(name = "productScale")
+    private String productScale;
+    @Column(name = "productVendor")
+    private String productVendor;
+    @Column(name = "productDescription")
+    private String productDescription;
+
+    @Column(name = "quantityInStock")
+    private Short quantityInStock;
+    @Column(name = "buyPrice")
+    private Double buyPrice;
+    @Column(name = "MSRP")
+    private Double MSRP;
 
 
-/**
- * A simple "model" object to take and return.
- *
- */
-public class Product implements Serializable {
-    private static final long serialVersionUID = -4728364803694212664L;
-
-    private Integer productId;
-    private String description;
-    private String createDate;
-
-
-    public Product() {
-        OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MILLIS);
-        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
-        this.createDate = formatter.format(now);
+    
+    public String getProductName() {
+        return productName;
     }
 
-    public Integer getProductId() {
-        return this.productId;
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
 
-    public void setProductId(Integer productId) {
-        this.productId = productId;
+    public ProductLine getProductLine() {
+        return productLine;
     }
 
-    public String getDescription() {
-        return this.description;
+    public void setProductLine(ProductLine productLine) {
+        this.productLine = productLine;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public String getProductScale() {
+        return productScale;
     }
 
-    public String getCreateDate() {
-        return this.createDate;
+    public void setProductScale(String productScale) {
+        this.productScale = productScale;
     }
 
-    public void setCreateDate(String createDate) {
-        this.createDate = createDate;
+    public String getProductVendor() {
+        return productVendor;
+    }
+
+    public void setProductVendor(String productVendor) {
+        this.productVendor = productVendor;
+    }
+
+    public String getProductDescription() {
+        return productDescription;
+    }
+
+    public void setProductDescription(String productDescription) {
+        this.productDescription = productDescription;
+    }
+
+    public Short getQuantityInStock() {
+        return quantityInStock;
+    }
+
+    public void setQuantityInStock(Short quantityInStock) {
+        this.quantityInStock = quantityInStock;
+    }
+
+    public Double getBuyPrice() {
+        return buyPrice;
+    }
+
+    public void setBuyPrice(Double buyPrice) {
+        this.buyPrice = buyPrice;
+    }
+
+    public Double getMSRP() {
+        return MSRP;
+    }
+
+    public void setMSRP(Double mSRP) {
+        MSRP = mSRP;
+    }
+
+    public String getProductCode() {
+        return productCode;
     }
 }

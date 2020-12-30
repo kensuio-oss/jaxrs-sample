@@ -7,13 +7,14 @@
     <persistence-unit name="tutorialapp" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
         <class>com.hotjoe.services.model.Visit</class>
+        <class>com.hotjoe.services.model.Hit</class>
         <properties>
             <property name="javax.persistence.jdbc.driver" value="io.opentracing.contrib.jdbc.TracingDriver" />
             <property name="javax.persistence.jdbc.url" value="jdbc:tracing:clickhouse://localhost:8123/tutorial" />
             <property name="javax.persistence.jdbc.user" value="andy" />
             <property name="javax.persistence.jdbc.password" value="andy" />
             <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
-
+<!-- 
             <property name="hibernate.ejb.event.post-load"
                     value="com.hotjoe.services.KensuLoadEntityListener"/>
 
@@ -22,7 +23,29 @@
 
             <property name="hibernate.ejb.interceptor"
                     value="com.hotjoe.services.KensuLoadEntityListener"/>
-	
+	 -->
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="classicmodels" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+        <class>com.hotjoe.services.model.Product</class>
+        <class>com.hotjoe.services.model.ProductLine</class>
+        <properties>
+            <property name="javax.persistence.jdbc.driver" value="io.opentracing.contrib.jdbc.TracingDriver" />
+            <property name="javax.persistence.jdbc.url" value="jdbc:tracing:clickhouse://localhost:8123/classicmodels" />
+            <property name="javax.persistence.jdbc.user" value="andy" />
+            <property name="javax.persistence.jdbc.password" value="andy" />
+            <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
+
+            <!-- <property name="hibernate.ejb.event.post-load"
+                    value="com.hotjoe.services.KensuLoadEntityListener"/>
+
+            <property name="hibernate.ejb.event.load-collection"
+                    value="com.hotjoe.services.KensuLoadEntityListener"/>
+
+            <property name="hibernate.ejb.interceptor"
+                    value="com.hotjoe.services.KensuLoadEntityListener"/>
+	 -->
         </properties>
     </persistence-unit>
 </persistence>

@@ -16,6 +16,15 @@ public class Visit {
     @GeneratedValue()
     private Long visitId;
 
+    @Column(name = "CounterID")
+    private Long counterId;
+    public Long getCounterId() {
+        return counterId;
+    }
+    public void setCounterId(Long counterId) {
+        this.counterId = counterId;
+    }
+
     @Column(name = "StartURL")
     private String startUrl; 
     public String getStartUrl() {
@@ -32,5 +41,14 @@ public class Visit {
     }
     public void setEndUrl(String s) {
         this.endUrl = s;
+    }
+
+    @Column(name = "Sign")
+    private Integer sign;
+    public Integer getSign() {
+        return sign;
+    }
+    public void setSign(Integer sign) {
+        this.sign = sign;
     }
 }

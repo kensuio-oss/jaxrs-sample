@@ -121,7 +121,7 @@ public class KensuTracingInterceptorFeature implements DynamicFeature {
             if (context instanceof WriterInterceptorContext) {
                 WriterInterceptorContext c = (WriterInterceptorContext) context;
                 // can check format with c.getMediaType() == "application/json"
-                // can check type of entity xith getType => java.util.ArrayList (e.g.)
+                // can check type of entity with getType => java.util.ArrayList (e.g.)
                 logger.info("Entity:" + c.getEntity());
                 // TODO extract schema from entity...
                 // TODO extract stats from entity
