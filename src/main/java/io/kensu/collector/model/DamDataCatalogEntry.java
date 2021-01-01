@@ -1,7 +1,7 @@
 package io.kensu.collector.model;
 
-import io.kensu.dam.model.*;
-import io.kensu.dam.util.DataSources;
+import io.kensu.dim.client.model.*;
+import io.kensu.dim.client.util.DataSources;
 
 import java.util.List;
 

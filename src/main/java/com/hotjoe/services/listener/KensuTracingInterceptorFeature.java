@@ -6,6 +6,8 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -22,6 +24,7 @@ import javax.ws.rs.ext.InterceptorContext;
 import javax.ws.rs.ext.Provider;
 import javax.ws.rs.ext.WriterInterceptorContext;
 
+import io.kensu.utils.GenericTag;
 import org.jboss.resteasy.core.ResourceInvoker;
 import org.jboss.resteasy.core.ResourceMethodRegistry;
 import org.jboss.resteasy.core.SynchronousDispatcher;
@@ -84,11 +87,10 @@ public class KensuTracingInterceptorFeature implements DynamicFeature {
                     //TODO what about the BODY... ?  => requestContext.getEntityStream()
                     Optional<String> queryParamsPattern = queryParameters.keySet().stream().map(a->a+"={"+a+"}").reduce((a,b)->a+"&"+b);
                     span.setTag("http.request.url.path.pattern", urlPattern+queryParamsPattern.map(a->"?"+a).orElse(""));
-                    span.setTag("http.request.url.path.parameters", pathParameters.keySet().stream().reduce((a,b)->a+","+b).orElse(""));
-                    span.setTag("http.request.url.query.parameters", queryParameters.keySet().stream().reduce((a,b)->a+","+b).orElse(""));
+                    span.setTag(new GenericTag<Set<String>>("http.request.url.path.parameters"), pathParameters.keySet());
+                    span.setTag(new GenericTag<Set<String>>("http.request.url.query.parameters"), queryParameters.keySet());
                 } catch (Exception e) {
-                    e.printStackTrace();
-                    logger.warning("Can't find the URL Pattern for current request. Msg: " + e.getMessage());
+                    logger.log(Level.WARNING, "Can't find the URL Pattern for current request. Msg: " + e.getMessage(), e);
                 }
             }
 

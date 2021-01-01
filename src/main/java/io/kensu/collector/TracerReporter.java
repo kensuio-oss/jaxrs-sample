@@ -5,27 +5,24 @@ import io.kensu.collector.model.DamBatchBuilder;
 import io.kensu.collector.model.DamDataCatalogEntry;
 import io.kensu.collector.model.DamSchemaUtils;
 import io.kensu.collector.model.SimpleDamLineageBuilder;
+import io.kensu.collector.model.datasource.HttpDatasourceNameFormatter;
 import io.kensu.collector.model.datasource.JdbcDatasourceNameFormatter;
+import io.kensu.dim.client.util.DataSources;
+import io.kensu.dim.client.util.Lineages;
 import io.kensu.utils.ConcurrentHashMultimap;
-import io.kensu.dam.ApiClient;
-import io.kensu.dam.ApiException;
-import io.kensu.dam.ManageKensuDamEntitiesApi;
-import io.kensu.dam.OfflineFileApiClient;
-import io.kensu.dam.model.*;
-import io.kensu.dam.model.Process;
+import io.kensu.dim.client.invoker.ApiClient;
+import io.kensu.dim.client.invoker.ApiException;
+import io.kensu.dim.client.api.ManageKensuDamEntitiesApi;
+import io.kensu.dim.client.invoker.OfflineFileApiClient;
+import io.kensu.dim.client.model.*;
+import io.kensu.dim.client.model.Process;
 import io.kensu.jdbc.parser.DamJdbcQueryParser;
 import io.kensu.jdbc.parser.ReferencedSchemaFieldsInfo;
-// import io.kensu.collector.model.datasource.HttpDatasourceNameFormatter;
-// import io.kensu.collector.model.datasource.JdbcDatasourceNameFormatter;
-// import io.kensu.jdbc.parser.DamJdbcQueryParser;
-// import io.kensu.jdbc.parser.ReferencedSchemaFieldsInfo;
 import io.opentracing.contrib.reporter.Reporter;
 import io.opentracing.contrib.reporter.SpanData;
 import io.opentracing.tag.Tag;
 import io.opentracing.tag.Tags;
-//import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.statement.Statement;
 
 import java.time.Instant;
 import java.util.*;
@@ -72,13 +69,6 @@ public class TracerReporter implements Reporter {
         if (maybeParentId != null) {
             spanChildrenCache.addEntry(maybeParentId, span);
         } else {
-            // this is the main SPAN, report all the stuff which was gathered so far
-            DamBatchBuilder batchBuilder = new DamBatchBuilder().withDefaultLocation();
-            PhysicalLocationRef defaultLocationRef = DamBatchBuilder.DEFAULT_LOCATION_REF;
-
-            String logMessage = createLogMessage(timestamp, "Finish", span);
-            logger.fine(logMessage);
-
             // //   - http.status_code: 200
             // //   - component: java-web-servlet
             // //   - span.kind: server
@@ -87,25 +77,53 @@ public class TracerReporter implements Reporter {
             // //  http.request.url.path.pattern	    /v1/visit/{visitId}?outputFormat={outputFormat}
             // //  http.request.url.path.parameters	    visitId
             // //  http.request.url.query.parameters	outputFormat
-
             // //   - DamOutputSchema: [class FieldDef {
             Integer httpStatus = getTagOrDefault(Tags.HTTP_STATUS, span, 0);
-            // FIMXE: need ability to remove param value to get URL pattern!!!
             String httpUrl = getTagOrDefault(Tags.HTTP_URL, span, null);
             String httpMethod = getTagOrDefault(Tags.HTTP_METHOD, span, null);
             String httpPathPattern = getTagOrDefault("http.request.url.path.pattern", span, null);
-            String httpPathParameters = getTagOrDefault("http.request.url.path.parameters	", span, null);
-            String httpQueryParameters = getTagOrDefault("http.request.url.query.parameters	", span, null);
+            Set<String> httpPathParameters = (Set<String>)span.tags.get("http.request.url.path.parameters");
+            Set<String> httpQueryParameters = (Set<String>)span.tags.get("http.request.url.query.parameters");
+
+            if (httpMethod == null) {
+                // this is probably not a span that we should consider for lineage purpose
+                return;
+            }
+
+            Set<SpanData> toBeRemoved = new HashSet<>();
+            toBeRemoved.add(span);
+
+            // this is the main SPAN, report all the stuff which was gathered so far
+            DamBatchBuilder batchBuilder = new DamBatchBuilder().withDefaultLocation();
+            PhysicalLocationRef defaultLocationRef = DamBatchBuilder.DEFAULT_LOCATION_REF;
+
+            String logMessage = createLogMessage(timestamp, "Finish", span);
+            logger.fine(logMessage);
+
+
+            Set<FieldDef> endpointQueryFields = new HashSet<>();
+            // adding pathParams & queryParams as fields
+            if (httpPathParameters != null && !httpPathParameters.isEmpty()) {
+                httpPathParameters.stream().map(DamSchemaUtils::fieldWithMissingInfo).forEach(endpointQueryFields::add);
+            }
+            if (httpQueryParameters != null && !httpQueryParameters.isEmpty()) {
+                httpQueryParameters.stream().map(DamSchemaUtils::fieldWithMissingInfo).forEach(endpointQueryFields::add);
+            }
+            // TODO support content body (like query JSON for example)
+            DamDataCatalogEntry endpointQueryCatalogEntry = batchBuilder.addCatalogEntry("HTTP Request",
+                    endpointQueryFields, httpPathPattern, "http", defaultLocationRef, HttpDatasourceNameFormatter.INST);
+            DamDataCatalogEntry endpointQueryCatalogEntryWithResultSchema = null;
 
             String transformedHttpUrl = "http:"+httpMethod+":"+httpPathPattern;
             logger.warning("transformedHttpUrl: "+ transformedHttpUrl);
             if ((httpStatus >= 200) && (httpStatus < 300) && transformedHttpUrl != null && httpMethod != null) {
-                List<DamDataCatalogEntry> inputCatalogEntries = new ArrayList<>();
+                Map<String, DamDataCatalogEntry> queriedTableCatalogEntries = new HashMap<>();
                 Set<SpanData> children = spanChildrenCache.get(span.spanId);
                 // children might be => "Query" then "serialize"  
-                for (SpanData sc : children) {
-                    SpanData spanChild = sc;
-                    if (spanChild.operationName == "Query") {
+                for (SpanData spanChild : children) {
+                    toBeRemoved.add(spanChild);
+                    Map<String, Map<String, Double>> statsByTable = new HashMap<>();
+                    if (spanChild.operationName.equals("Query")) {
                         /*
                             component	-> java-jdbc
                             db.instance	-> classicmodels
@@ -125,7 +143,13 @@ public class TracerReporter implements Reporter {
                         try {
                             damJdbcQueryParser = new DamJdbcQueryParser(dbInstance, dbType, dbStatement);
                             fieldsByTable = damJdbcQueryParser.guessReferencedInputTableSchemas();
-                            inputCatalogEntries.addAll(batchBuilder.addCatalogEntries("SQL Query", fieldsByTable.schema, dbType, defaultLocationRef, JdbcDatasourceNameFormatter.INST));
+                            for (Map.Entry<String, HashSet<FieldDef>> sfd : fieldsByTable.schema.entrySet()) {
+                                String schemaAndTableName = sfd.getKey();
+                                HashSet<FieldDef> fields = sfd.getValue();
+                                DamDataCatalogEntry dataCatalogEntry = batchBuilder.addCatalogEntry("SQL Query",
+                                        fields, schemaAndTableName, dbType, defaultLocationRef, JdbcDatasourceNameFormatter.INST);
+                                queriedTableCatalogEntries.put(schemaAndTableName, dataCatalogEntry);
+                            }
                         } catch (JSQLParserException e) {
                             logger.log(Level.SEVERE, String.format("unable to parse (dbInstance: %s, dbType: %s, dbStatement: %s) ", dbInstance, dbType, dbStatement), e);
                             if (!dbStatement.startsWith("call next value")) {
@@ -133,21 +157,10 @@ public class TracerReporter implements Reporter {
                             }
                         }
 
-                        // TODO link http DS with tables in all 'Query's
-
-                        Function<String, Optional<Double>> stod = (s) -> {
-                            Double statDoubleValue = null;
-                            try {
-                                statDoubleValue = Double.parseDouble(s);
-                            } catch (NumberFormatException ne) {
-                                logger.fine("Can't parse double value of stats sent in query stats span: " + s);
-                            }
-                            return Optional.<Double>ofNullable(statDoubleValue);
-                        };
-
                         Set<SpanData> queryChildren = spanChildrenCache.get(spanChild.spanId);
                         for (SpanData queryStatsSpan : queryChildren) {
-                            if (queryStatsSpan.operationName == "QueryResultStats") {
+                            toBeRemoved.add(queryStatsSpan);
+                            if (queryStatsSpan.operationName.equals("QueryResultStats")) {
                                 /*
                                     db.column.1.md -> [,products,productL9_1_0_,String,false]
                                     db.column.1.stats-> {(count,12.0)}
@@ -164,8 +177,7 @@ public class TracerReporter implements Reporter {
                                 Function<Integer, String> mkStats = (i) -> { return "db.column."+i+".stats";};
                                 int keyIndex = 1;
                                 String mdKey = mkKey.apply(keyIndex);
-                                Map<String, Map<String, Double>> statsByTable = new HashMap<>();
-                                Optional<Double> dbCount = Optional.ofNullable(queryStatsSpan.tags.get("db.count")).flatMap(e -> stod.apply(""+e));
+                                Optional<Number> dbCount = Optional.ofNullable((Number) queryStatsSpan.tags.get("db.count"));
                                 while (queryStatsSpan.tags.containsKey(mdKey)) {
                                     Map<String, String> md = (Map<String, String>)queryStatsSpan.tags.get(mdKey);
                                     String db = md.get("schemaName");
@@ -175,7 +187,7 @@ public class TracerReporter implements Reporter {
                                     if (!statsByTable.containsKey(db+"."+table)) {
                                         Map<String, Double> m = new HashMap<>();
                                         if (dbCount.isPresent()) {
-                                            m.put("row.count", dbCount.get());
+                                            m.put("row.count", dbCount.get().doubleValue());
                                         }
                                         statsByTable.put(db+"."+table, m);
                                     }
@@ -195,109 +207,85 @@ public class TracerReporter implements Reporter {
                                     statsTagValue.forEach((k,v) -> stats.put(columnFinal+"."+k, v));
                                     mdKey = mkKey.apply(++keyIndex);
                                 }
-                                logger.fine("statsByTable: " + statsByTable);
-                                // Attach stats to all tables in this 'Query' (******)
                             }
                         }
-                 
-                    } else if (spanChild.operationName == "serialize") {
+                        logger.fine("statsByTable: " + statsByTable);
+                        // TODO Attach stats to all tables in this 'Query' (******)
+                    } else if (spanChild.operationName.equals("serialize")) {
                         logger.info(spanChild.toString());
                         /*
                         entity.type	-> com.hotjoe.services.ProductLineService$ProductLineView
                         internal.span.format -> jaeger
                         media.type	-> application/json
+                        response.schema -> Set of FieldDef
                         */
-                        //TODO Attach SAME (******) stats to all tables in this 'Query'
-                        // create schema and stats out of the entities to the endpoint -> KensuTracingInterceptorFeature
-                        // link all tables to endpoint and attach stats to endpoint
+                        // MAYBE TODO Attach SAME (******) stats to all tables (inputs of the lineage) in this 'Query'
+
+                        // TODO  use schema and stats out of the response, see ResponseInterceptor
+                        Set<FieldDef> fieldsSet = (Set<FieldDef>) spanChild.tags.get("response.schema");
+                        endpointQueryCatalogEntryWithResultSchema = batchBuilder.addCatalogEntry("HTTP Request",
+                                fieldsSet, httpPathPattern, "http", defaultLocationRef, HttpDatasourceNameFormatter.INST);
                     }
-
-
-
-                    //TODO remove spans from cache!!!
-                    
-
-
                 }
 
-            //Set<FieldDef> damOutputFields = getTagOrDefault(DAM_OUTPUT_SCHEMA_TAG, span, null);
-            //     // FIXME: last resort in case schema wasn't resolved or empty
-            //     damOutputFields = (damOutputFields == null) ? DamSchemaUtils.EMPTY_SCHEMA : damOutputFields;
-            //     String endpointName = String.format("HTTP %s", httpMethod);
-            //     DamDataCatalogEntry outputCatalogEntry = batchBuilder.addCatalogEntry(
-            //             "create",
-            //             damOutputFields,
-            //             transformedHttpUrl,
-            //             endpointName,
-            //             defaultLocationRef,
-            //             HttpDatasourceNameFormatter.INST
-            //     );
-            //     logger.warn("outputCatalogEntry: " + outputCatalogEntry);
+                Process process = damEnv.enqueProcess(batchBuilder);
 
-            //     List<DamDataCatalogEntry> inputCatalogEntries = new ArrayList<>();
-            //     List<DamDataCatalogEntry> writesCatalogEntries = new ArrayList<>();
-            //     Set<SpanData> children = spanChildrenCache.get(span.spanId);
-            //     if (children != null) {
-            //         logger.debug(String.format("CHILDREN (count = %d):", children.size()));
-            //         children.forEach(childSpan -> {
-            //             logger.debug(createLogMessage(timestamp, "child", childSpan));
-            //             if (getTagOrDefault(Tags.COMPONENT, childSpan, "").equals("java-jdbc")) {
-            //                 String dbInstance = getTagOrDefault(Tags.DB_INSTANCE, childSpan, "");
-            //                 String dbType = getTagOrDefault(Tags.DB_TYPE, childSpan, "");
-            //                 String dbStatement = getTagOrDefault(Tags.DB_STATEMENT, childSpan, "");
-            //                 // SQL reads
-            //                 try {
-            //                     DamJdbcQueryParser damJdbcQueryParser = new DamJdbcQueryParser(dbInstance, dbType, dbStatement, logger);
-            //                     ReferencedSchemaFieldsInfo fieldsByTable = damJdbcQueryParser.guessReferencedInputTableSchemas();
-            //                     inputCatalogEntries.addAll(batchBuilder.addCatalogEntries("create", fieldsByTable.schema, dbType, defaultLocationRef, JdbcDatasourceNameFormatter.INST));
-            //                 } catch (JSQLParserException e) {
-            //                     logger.error(String.format("unable to parse (dbInstance: %s, dbType: %s, dbStatement: %s) ", dbInstance, dbType, dbStatement));
-            //                     if (!dbStatement.startsWith("call next value")) {
-            //                         e.printStackTrace();
-            //                     }
-            //                 }
-            //                 // SQL writes
-            //                 try {
-            //                     DamJdbcQueryParser damJdbcQueryParser = new DamJdbcQueryParser(dbInstance, dbType, dbStatement, logger);
-            //                     ReferencedSchemaFieldsInfo fieldsByTable = damJdbcQueryParser.guessReferencedOutputTableSchemas();
-            //                     writesCatalogEntries.addAll(batchBuilder.addCatalogEntries(fieldsByTable.lineageOperation, fieldsByTable.schema, dbType, defaultLocationRef, JdbcDatasourceNameFormatter.INST));
-            //                 } catch (JSQLParserException e) {
-            //                     logger.error(String.format("unable to parse (dbInstance: %s, dbType: %s, dbStatement: %s) ", dbInstance, dbType, dbStatement));
-            //                     if (!dbStatement.startsWith("call next value")) {
-            //                         e.printStackTrace();
-            //                     }
-            //                 }
-            //             }
-            //         });
-            //     }
-            //     // Add all-to-all lineage between all inputs and the HTTP output
-            //     logger.warn("inputCatalogEntries: " + inputCatalogEntries);
-            //     Process process = damEnv.enqueProcess(batchBuilder);
-            //     ProcessRun processRun = damEnv.enqueProcessRun(process, endpointName, batchBuilder);
-            //     String inputToHttpOutputOp = "APPEND";
-            //     new SimpleDamLineageBuilder(
-            //             process,
-            //             processRun,
-            //             inputCatalogEntries,
-            //             outputCatalogEntry,
-            //             inputToHttpOutputOp,
-            //             "create"
-            //     ).addToBatch(batchBuilder);
-            //     // each write will need a different lineage as operation logic may be different
-            //     logger.warn("writesCatalogEntries: " + writesCatalogEntries);
-            //     String inputToJdbcWriteOp = "APPEND";
-            //     writesCatalogEntries.forEach(jdbcWriteOutput -> {
-            //         new SimpleDamLineageBuilder(
-            //                 process,
-            //                 processRun,
-            //                 Collections.singletonList(outputCatalogEntry),
-            //                 jdbcWriteOutput,
-            //                 inputToJdbcWriteOp,
-            //                 jdbcWriteOutput.lineageTitlePrefix
-            //         ).addToBatch(batchBuilder);
-            //     });
-            //     reportBatchToDam(batchBuilder);
+                ProcessRun processRun = damEnv.enqueProcessRun(process, "http:"+httpMethod, batchBuilder);
+
+                // endpointQueryCatalogEntry -> queriedTableCatalogEntries
+                Lineages.LineageDef lineageDefIn = null;
+                if (!endpointQueryCatalogEntry.fields.isEmpty()) {
+                    List<DamDataCatalogEntry> nonEmptyOutputs = queriedTableCatalogEntries.values().stream().filter(q -> !q.fields.isEmpty()).collect(Collectors.toList());
+                    if (!nonEmptyOutputs.isEmpty()) {
+                        // no lineages for schema without fields, if no more schema in or out after, then... not lineage
+                        lineageDefIn = new Lineages.LineageDef(
+                                process,
+                                "query",
+                                List.of(endpointQueryCatalogEntry),
+                                new ArrayList<>(queriedTableCatalogEntries.values()),
+                                Lineages.DIRECT, // FIXME !!!! this is not sufficient at all
+                                "APPEND",
+                                Lineages.NOW
+                        );
+                        batchBuilder.addFromOtherBatch(lineageDefIn.damBatch);
+                        // add process & lineage runs!!!
+                        BatchEntityReport lineageRunInBatch = lineageDefIn.runIn(new ProcessRunRef().byPK(processRun.getPk()), Lineages.NOW.apply(), false);
+                        batchBuilder.addFromOtherBatch(lineageRunInBatch);
+                        BatchLineageRun lineageRunIn = lineageRunInBatch.getLineageRuns().get(0);
+                        // TODO add stats!!! to lineageRunIn
+                    }
+                }
+
+                // queriedTableCatalogEntries -> endpointQueryCatalogEntry
+                Lineages.LineageDef lineageDefOut = null;
+                if (!endpointQueryCatalogEntryWithResultSchema.fields.isEmpty()) {
+                    List<DamDataCatalogEntry> nonEmptyInputs = queriedTableCatalogEntries.values().stream().filter(q -> !q.fields.isEmpty()).collect(Collectors.toList());
+                    if (!nonEmptyInputs.isEmpty()) {
+                        // no lineages for schema without fields, if no more schema in or out after, then... not lineage
+                        lineageDefOut = new Lineages.LineageDef(
+                                process,
+                                "query",
+                                new ArrayList<>(queriedTableCatalogEntries.values()),
+                                List.of(endpointQueryCatalogEntryWithResultSchema),
+                                OUT_ENDS_WITH_IN, // FIXME !!!! this is not sufficient at all -> at least we use "finish by"
+                                "APPEND",
+                                Lineages.NOW
+                        );
+                        batchBuilder.addFromOtherBatch(lineageDefOut.damBatch);
+                        // add process & lineage runs!!!
+                        BatchEntityReport lineageRunOutBatch = lineageDefOut.runIn(new ProcessRunRef().byPK(processRun.getPk()), Lineages.NOW.apply(), false);
+                        batchBuilder.addFromOtherBatch(lineageRunOutBatch);
+                        BatchLineageRun lineageRunOut = lineageRunOutBatch.getLineageRuns().get(0);
+                        // TODO add stats!!! to lineageRunOut
+                    }
+                }
             }
+            //remove spans from cache!!!
+            toBeRemoved.forEach(spanChildrenCache::remove);
+            reportBatchToDam(batchBuilder);
+
+            // FIXME spans might still accumulate in the cache, we should create something like an LRU Cache
+            //   given that queries should not run for hours...
         }
     }
 
@@ -307,6 +295,9 @@ public class TracerReporter implements Reporter {
             if (damEnv.isOffline()) {
                 apiClient = new OfflineFileApiClient();
             } else {
+                logger.info("DIM SHOULD BE OFFLINE ????: "  + damEnv.isOffline());
+                logger.info("DIM SHOULD BE OFFLINE prop: "  + System.getProperty("DAM_OFFLINE"));
+                logger.info("DIM SHOULD BE OFFLINE env: "  + System.getenv("DAM_OFFLINE"));
                 String authToken = damEnv.damIngestionToken();
                 String serverHost = damEnv.damIngestionUrl();
                 apiClient = new ApiClient()
@@ -356,5 +347,30 @@ public class TracerReporter implements Reporter {
         }
         return sb.toString();
     }
+
+    public final static Lineages.ProcessCatatalogEntry OUT_ENDS_WITH_IN = new Lineages.ProcessCatatalogEntry(java.util.Collections.singletonList(new Lineages.NoCheckProcessCatalogMapping() {
+        public Map<Entry<DataSources.DataCatalogEntry, String>, Set<Entry<DataSources.DataCatalogEntry, String>>> apply(DataSources.DataCatalogEntry i, DataSources.DataCatalogEntry o) {
+            Map<Entry<DataSources.DataCatalogEntry, String>, Set<Entry<DataSources.DataCatalogEntry, String>>> results =
+                    new java.util.HashMap<Entry<DataSources.DataCatalogEntry, String>, Set<Entry<DataSources.DataCatalogEntry, String>>>();
+
+            for (FieldDef	ofd : o.fields) {
+                Entry<DataSources.DataCatalogEntry, String> op = new AbstractMap.SimpleEntry<DataSources.DataCatalogEntry, String>(o, ofd.getName());
+                Entry<DataSources.DataCatalogEntry, String> ip = null;
+                for (FieldDef ifd: i.fields) {
+                    // if (ifd.getName().equals(ofd.getName())) {
+                    if (ofd.getName().equals(ifd.getName()) || ofd.getName().endsWith("."+ifd.getName())) {
+                        ip = Map.<DataSources.DataCatalogEntry, String>entry(i, ifd.getName());
+                        break;
+                    }
+                }
+                if (ip != null) {
+                    Set<Entry<DataSources.DataCatalogEntry, String>> ips = new java.util.HashSet<Entry<DataSources.DataCatalogEntry, String>>();
+                    ips.add(ip);
+                    results.put(op, ips);
+                }
+            }
+            return results;
+        }
+    }));
 }
 

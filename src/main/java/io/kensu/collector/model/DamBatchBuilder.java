@@ -1,9 +1,9 @@
 package io.kensu.collector.model;
 
 import io.kensu.collector.model.datasource.DatasourceNameFormatter;
-import io.kensu.dam.model.*;
-import io.kensu.dam.model.Process;
-import io.kensu.dam.util.Compact;
+import io.kensu.dim.client.model.*;
+import io.kensu.dim.client.model.Process;
+import io.kensu.dim.client.util.Compact;
 import io.kensu.utils.ConcurrentHashMultimap;
 
 import java.util.ArrayList;

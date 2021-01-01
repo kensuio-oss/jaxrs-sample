@@ -2,7 +2,7 @@ package io.kensu.jdbc.parser;
 
 import java.util.Map;
 
-import io.kensu.dam.model.FieldDef;
+import io.kensu.dim.client.model.FieldDef;
 import io.kensu.utils.ConcurrentHashMultimap;
 
 public class ReferencedSchemaFieldsInfo {

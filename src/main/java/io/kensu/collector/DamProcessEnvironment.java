@@ -1,8 +1,8 @@
 package io.kensu.collector;
 
 import io.kensu.collector.model.DamBatchBuilder;
-import io.kensu.dam.model.*;
-import io.kensu.dam.model.Process;
+import io.kensu.dim.client.model.*;
+import io.kensu.dim.client.model.Process;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,23 +11,23 @@ import java.util.List;
 public class DamProcessEnvironment {
 
     public boolean isOffline() {
-        boolean isOffline = getOptEnv("DAM_OFFLINE", "").toLowerCase().equals("true");
+        boolean isOffline = getOptEnv("DAM_OFFLINE", "false").toLowerCase().equals("true");
         // isOffline = true;
         return isOffline;
     }
 
     public String damIngestionUrl(){
-        String serverHost = System.getenv("DAM_INGESTION_URL");
+        String serverHost = getOptEnv("DAM_INGESTION_URL", null);
         if (serverHost == null) {
-            throw new RuntimeException("DAM_INGESTION_URL env var required when DAM is in online mode, e.g. https://localhost");
+            throw new RuntimeException("DAM_INGESTION_URL env var / java prop required when DAM is in online mode, e.g. https://localhost");
         }
         return serverHost;
     }
 
     public String damIngestionToken(){
-        String authToken = System.getenv("DAM_AUTH_TOKEN");
+        String authToken = getOptEnv("DAM_AUTH_TOKEN", null);
         if (authToken == null) {
-            throw new RuntimeException("DAM_AUTH_TOKEN env var required when DAM is in online mode");
+            throw new RuntimeException("DAM_AUTH_TOKEN env var / java prop required when DAM is in online mode");
         }
         return authToken;
     }
@@ -104,7 +104,7 @@ public class DamProcessEnvironment {
     }
 
     protected String getOptEnv(String envName, String defaultValue){
-        String result = System.getenv(envName);
+        String result = System.getProperty(envName, System.getenv(envName));
         return (result == null) ? defaultValue : result;
     }
 }

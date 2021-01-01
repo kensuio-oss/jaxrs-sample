@@ -31,6 +31,11 @@ public class KensuTracerFactory implements TracerFactory {
             logger.warning("Can't create Jaeger as var env are not set, and we don't support default-tracer from Wildly yet");
             backendTracer = NoopTracerFactory.create();
         }
+
+        // FIXME only for testing...
+        System.setProperty("DAM_OFFLINE", "true");
+        System.setProperty("DAM_OFFLINE_FILE_NAME", "dim.jsonl");
+
         io.kensu.collector.TracerReporter reporter = new io.kensu.collector.TracerReporter();
         Tracer javaTracer = new TracerR(backendTracer, reporter, backendTracer.scopeManager());        
         return javaTracer;

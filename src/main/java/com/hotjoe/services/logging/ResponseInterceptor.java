@@ -1,13 +1,11 @@
 package com.hotjoe.services.logging;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.WebApplicationException;
@@ -16,11 +14,17 @@ import javax.ws.rs.ext.Provider;
 import javax.ws.rs.ext.WriterInterceptor;
 import javax.ws.rs.ext.WriterInterceptorContext;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.kensu.dim.client.model.FieldDef;
+import io.kensu.utils.GenericTag;
+import io.kensu.utils.KensuJsonSchemaInferrer;
+import io.opentracing.contrib.jdbc.TracingConnection;
+import org.apache.commons.io.output.TeeOutputStream;
 
 import io.opentracing.Span;
 import io.opentracing.Tracer;
@@ -39,70 +43,105 @@ import io.opentracing.util.GlobalTracer;
 @Provider
 @Logged
 public class ResponseInterceptor implements WriterInterceptor {
-    private static Logger logger = LoggerFactory.getLogger(ResponseInterceptor.class);
-    private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
+    private static Logger logger = Logger.getLogger(ResponseInterceptor.class.getName());
 
-    @Override
-    public void aroundWriteTo(WriterInterceptorContext context) throws IOException, WebApplicationException {
-        OutputStream originalStream = context.getOutputStream();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        context.setOutputStream(baos);
-        try {
-            context.proceed();
+    // TODO that would be cool
+    public static class KensuLiveOutputStreamInterceptor extends OutputStream {
+        PipedInputStream in;
+        PipedOutputStream out;
+        public KensuLiveOutputStreamInterceptor() throws IOException {
+            in = new PipedInputStream();
+            out = new PipedOutputStream(in);
+            new Thread(() -> {
+                try {
+                    // TODO schema and stats could be built in streaming mode
+                    //  => so no need to reprocess the whole stream again
+                    JsonFactory fac = new JsonFactory();
+                    final JsonParser jsonParser = fac.createParser(in);
+                    JsonToken token;
+                    while((token = jsonParser.nextToken()) != null) {
+                        if (token == JsonToken.START_OBJECT) {
+                        }
+                    }
+                    jsonParser.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
         }
-        finally {
-            MediaType mediaType = MediaType.WILDCARD_TYPE;
 
-            List<Object> contentTypes = context.getHeaders().get("Content-Type");
-            if( contentTypes != null ) {
-                if( contentTypes.get(0) instanceof MediaType)
-                    mediaType = (MediaType) contentTypes.get(0);
-                else if( contentTypes.get(0) instanceof String )
-                    mediaType = MediaType.valueOf((String)(contentTypes.get(0)));
-            }
+        @Override
+        public void write(int b) throws IOException {
+            out.write(b);
+        }
 
-            if( mediaType.getType().startsWith("text") || mediaType.equals(MediaType.APPLICATION_JSON_TYPE)) {
-                String content = baos.toString(StandardCharsets.UTF_8);
-                logger.info("response body: " + content);
-                // try {
-                //     ObjectMapper mapper = new ObjectMapper();
-                //     JsonNode actualObj = mapper.readTree(content);
-                //     if (actualObj.isArray()) {
-                //         // FIXME... this is temporary...
-                //         actualObj = actualObj.get(0);
-                //     }
-                //     Iterator<Entry<String, JsonNode>> fields = actualObj.fields();
-                //     List<String> actualList = new ArrayList<String>();
-                //     fields.forEachRemaining(arg0 -> actualList.add(arg0.getKey()));
-                //     String actualString = actualList.stream().collect(Collectors.joining());
-                //     logger.debug("Schema to be set as tag to current span");
-                //     Tracer tracer = GlobalTracer.get();
-                //     logger.debug("Global tracer: " + tracer);
-                //     Span activeSpan = tracer.activeSpan();
-                //     logger.debug("Active span: " + activeSpan);
-                //     activeSpan.setTag("schema", actualString);
-                // } catch (Exception e) {
-                //     logger.debug("Well... I guess this is not JSON...");
-                // }
-            }
-            else {
-                logger.info("response body is of type " + mediaType.toString() + " and it starts with these hex chars: " + bytesToHex(baos.toByteArray(), 25));
-            }
-            baos.writeTo(originalStream);
-            baos.close();
-            context.setOutputStream(originalStream);
+        @Override
+        public void close() throws IOException {
+            out.close();
+            in.close();
         }
     }
 
-    private static String bytesToHex(byte[] bytes, int length) {
-        int lengthToUse = Math.min(bytes.length, length);
+    public static class KensuEagerOutputStreamInterceptor extends OutputStream {
+        ByteArrayOutputStream out;
+        private String encoding;
+        private Span span;
 
-        char[] hexChars = new char[lengthToUse * 2];
-        for ( int j = 0; j < lengthToUse; j++ ) {
-            int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = hexArray[v >>> 4];
-            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        public KensuEagerOutputStreamInterceptor(String encoding, Span span) throws IOException {
+            this.encoding = encoding;
+            this.span = span;
+            out = new ByteArrayOutputStream();
         }
-        return new String(hexChars);
+
+        @Override
+        public void write(int b) throws IOException {
+            out.write(b);
+        }
+
+        @Override
+        public void close() throws IOException {
+            out.close();
+            String content = out.toString(this.encoding);
+            Set<FieldDef> fieldDefs = KensuJsonSchemaInferrer.inferSchema(content);
+            this.span.setTag(new GenericTag<Set<FieldDef>>("response.schema"), fieldDefs);
+        }
+    }
+
+    @Override
+    public void aroundWriteTo(WriterInterceptorContext context) throws IOException, WebApplicationException {
+        MediaType mediaType = MediaType.WILDCARD_TYPE;
+        Object contentType = context.getHeaders().getFirst("Content-Type");
+        if( contentType != null ) {
+            if( contentType instanceof MediaType)
+                mediaType = (MediaType) contentType;
+            else if( contentType instanceof String )
+                mediaType = MediaType.valueOf((String)(contentType));
+        }
+        TeeOutputStream tee = null;
+        if( mediaType.getType().startsWith("text") || mediaType.equals(MediaType.APPLICATION_JSON_TYPE)) {
+            Span span = GlobalTracer.get().activeSpan();
+            if (span != null) {
+                try {
+                    OutputStream originalStream = context.getOutputStream();
+                    String contentEncoding = Optional.ofNullable(context.getHeaders().getFirst("Content-Encoding"))
+                                                        .map(e -> e.toString()).orElse("UTF-8");
+
+                    OutputStream interceptStream = new KensuEagerOutputStreamInterceptor(contentEncoding, span);
+                    tee = new TeeOutputStream(originalStream, interceptStream);
+                    context.setOutputStream(tee);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Error while processing response stream for Kensu", e);
+                }
+            } else {
+                logger.warning("Can't log response schema as there is no active span...");
+            }
+        } else {
+            logger.fine("response body is of type " + mediaType.toString());
+        }
+        try {
+            context.proceed();
+        } finally {
+            if (tee != null) tee.close();
+        }
     }
 }

@@ -1,11 +1,11 @@
 package io.kensu.collector.model;
 
-import io.kensu.dam.model.BatchEntityReport;
-import io.kensu.dam.model.Process;
-import io.kensu.dam.model.ProcessRun;
-import io.kensu.dam.model.ProcessRunRef;
-import io.kensu.dam.util.DataSources;
-import io.kensu.dam.util.Lineages;
+import io.kensu.dim.client.model.BatchEntityReport;
+import io.kensu.dim.client.model.Process;
+import io.kensu.dim.client.model.ProcessRun;
+import io.kensu.dim.client.model.ProcessRunRef;
+import io.kensu.dim.client.util.DataSources;
+import io.kensu.dim.client.util.Lineages;
 
 import java.util.ArrayList;
 import java.util.Collections;

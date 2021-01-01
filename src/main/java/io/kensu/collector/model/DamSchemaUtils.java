@@ -1,6 +1,6 @@
 package io.kensu.collector.model;
 
-import io.kensu.dam.model.FieldDef;
+import io.kensu.dim.client.model.FieldDef;
 
 import java.util.Collections;
 import java.util.Set;

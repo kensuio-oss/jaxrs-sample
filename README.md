@@ -2,6 +2,10 @@
 A very simple JAX-RS sample application that implements a few services.  The
 services are meant purely as a demonstration and are not "real" services.
 
+Development
+----
+In IDEA: https://www.jetbrains.com/help/idea/deploying-a-web-app-into-wildfly-container.html#Deploying_a_web_app_into_Wildfly_container-5-procedure
+
 
 Deployment
 ----
@@ -18,80 +22,9 @@ For Wildlfy, there are many options to deploy listed on
 [the application deployment page](https://docs.jboss.org/author/display/WFLY10/Application+deployment)
 that can help deploy.
 
-Sample Service Info
-----
-There are a total of three service endpoints:
-
-```GET /v1/heartbeat``` - returns a "text/plain" HTTP body of "OK" if the service is up
-  and running. A heartbeat service like this is commonly used in load balancing
-  environments so that a load balancer can validate that an application is healthy.
-
-```POST /v1/product``` - puts a "product" in the catalog.  The product is a simple JSON
-  formatted object:
-  
-  ```json
-{"description": "The Product Description"}
+## Dependencies
+Updated Java Client for Wildfly which uses RestEasy instead of Glassfish for the client part, therefore the java client 
+has been regenerated (see https://www.baeldung.com/spring-boot-rest-client-swagger-codegen):
 ```
-
-This creates a product in the catalog.  The response will look like:
-
-```json
-{
-  "productId": 96361,
-  "description": "The Product Description",
-  "createDate": "2017-04-10T02:51:12.772Z"
-}
+openapi-generator-cli generate -i dam-ingestion-api.json --api-package io.kensu.dim.client.api --model-package io.kensu.dim.client.model --invoker-package io.kensu.dim.client.invoker --group-id io.kensu.dim.client --artifact-id java-resteasy-jackson --artifact-version 1.0.0-SNAPSHOT -g java -p java8=true --library resteasy -o client-java-resteasy-jackson
 ```
-
-Note that the productId is simply a random integer between 10000 and 1000000.  The
-createDate is when the product was added to the catalog.  Note that you can also
-send your own product id in the POST:
-
-```json
-{
-  "productId": 123456,
-  "description": "The Product Description"
-}
-```
-
-in which case the id that is given will be used.
-
-If the product id is already in use a 409 (Conflict) HTTP error will be returned
-with the body
-
-```json
-{
-  "message": "product id 123456 already exists"
-}
-```
-
-```GET /v1/product/{productId}``` gets an existing product with the given product id.
-The response body looks the same as the call to create a new product.  A call with a
-product id that doesn't exist will return an HTTP 404 error with the body:
-
-```json
-{
-  "message": "productId not found - 123456"
-}
-```
-
-```GET /v1/version``` gets a long description of the current version.  Note that in a production environment
-this could give out a bit more (or perhaps alot more) information than you might like to.  This call takes
-advantage of the `Accepts` header - if you don't specify anything then you'll get an XML response.  Pass
-`application/json` to get back JSON.
-
-```GET /v1/version/summary``` gets a short description of the current version.  This is a `text/plain` response
-that gets just a quick summary of the version information.  Again, it may give out more information than
-you'd like.
-
-
-Logging
-----
-The two product services are annotated with @Logged which means that the input
-and output of them will be logged to the loggers.  This is a nice way to get
-the input and output of the web service calls without using any proprietary libraries.
-
-
-Copyright (c) 2020
-by Xigole Systems
-Licensed under the MIT License - see the file LICENSE for details. 

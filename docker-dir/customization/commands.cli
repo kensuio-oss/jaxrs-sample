@@ -1,0 +1,8 @@
+# Mark the commands below to be run as a batch
+batch
+
+# Remove Tracing feature from wildfly...
+/subsystem=microprofile-opentracing-smallrye:remove()
+
+# Execute the batch
+run-batch

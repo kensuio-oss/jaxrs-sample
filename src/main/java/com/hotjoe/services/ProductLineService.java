@@ -33,21 +33,21 @@ public class ProductLineService {
 
     @Logged  // this request is logged
     @GET
-    @Path("/{productLineCode}")
+    @Path("/{productLine}")
     @Produces("application/json")
-    public Response getProductLine(@PathParam("productLineCode") String productLineCode) throws WebApplicationException {
+    public Response getProductLine(@PathParam("productLine") String productLine) throws WebApplicationException {
 		EntityManager em = ENTITY_MANAGER_FACTORY.createEntityManager();
             
     	String query = "SELECT p FROM ProductLine p WHERE p.productLine = :productLine";
     	
     	// Issue the query and get a matching Customer
     	TypedQuery<ProductLine> tq = em.createQuery(query, ProductLine.class);
-    	tq.setParameter("productLine", productLineCode);
+    	tq.setParameter("productLine", productLine);
     	
-    	ProductLineView productLine = null;
+    	ProductLineView productLineView = null;
     	try {
     		// Get matching customer object and output
-    		productLine = new ProductLineView(tq.getSingleResult());
+    		productLineView = new ProductLineView(tq.getSingleResult());
     	}
     	catch(NoResultException ex) {
     		ex.printStackTrace();
@@ -56,7 +56,7 @@ public class ProductLineService {
     		em.close();
     	}
         
-        return Response.ok(productLine).build();
+        return Response.ok(productLineView).build();
     }
 
     @Logged  // this request is logged

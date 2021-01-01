@@ -1,7 +1,7 @@
 package io.kensu.jdbc.parser;
 
 import io.kensu.collector.model.DamSchemaUtils;
-import io.kensu.dam.model.FieldDef;
+import io.kensu.dim.client.model.FieldDef;
 import io.kensu.utils.ConcurrentHashMultimap;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
@@ -59,6 +59,10 @@ public class DamJdbcQueryParser {
         }
     }
 
+    private String getTableName(Table table) {
+        return table.getSchemaName()+"."+table.getName();
+    }
+
     protected void tryToAddDefaultDatabase() throws JSQLParserException {
         // select based on: https://github.com/JSQLParser/JSqlParser/issues/812
         try {
@@ -105,7 +109,7 @@ public class DamJdbcQueryParser {
             lineageOperation = "insert into";
             Insert insertStatement = (Insert) statement;
             Table mainTable = insertStatement.getTable();
-            String mainTableName = mainTable.getFullyQualifiedName();
+            String mainTableName = getTableName(mainTable);
 
             Consumer<Column> columnConsumer = column -> {
                 dataFieldsByTable.addEntry(mainTableName, DamSchemaUtils.fieldWithMissingInfo(column.getColumnName()));
@@ -159,7 +163,7 @@ public class DamJdbcQueryParser {
             Table mainTable = updStatement.getTable();
             updStatement.getColumns().forEach(column -> {
                 dataFieldsByTable.addEntry(
-                        mainTable.getFullyQualifiedName(),
+                        getTableName(mainTable),
                         DamSchemaUtils.fieldWithMissingInfo(column.getColumnName())
                 );
             });
@@ -167,7 +171,7 @@ public class DamJdbcQueryParser {
                 @Override
                 public void visit(Column column) {
                     controlFieldsByTable.addEntry(
-                            orDefaultTable(column.getTable(), mainTable).getFullyQualifiedName(),
+                            getTableName(orDefaultTable(column.getTable(), mainTable)),
                             DamSchemaUtils.fieldWithMissingInfo(column.getColumnName())
                     );
                 }
@@ -180,7 +184,7 @@ public class DamJdbcQueryParser {
                 @Override
                 public void visit(Column column) {
                     controlFieldsByTable.addEntry(
-                            orDefaultTable(column.getTable(), mainTable).getFullyQualifiedName(),
+                            getTableName(orDefaultTable(column.getTable(), mainTable)),
                             DamSchemaUtils.fieldWithMissingInfo(column.getColumnName())
                     );
                 }
@@ -216,7 +220,7 @@ public class DamJdbcQueryParser {
                             Table resolvedColumnTable = resolveColumnTableOrFail(column, referencedTablesList);
                             Table resolvedColumnTableWithoutAlias = tableNamesAndAliasesFinder.getTableWithoutAlias(resolvedColumnTable);
                             dataFieldsByTable.addEntry(
-                                    resolvedColumnTableWithoutAlias.getFullyQualifiedName(),
+                                    getTableName(resolvedColumnTableWithoutAlias),
                                     Map.entry(DamSchemaUtils.fieldWithMissingInfo(column.getColumnName()), item.getAlias().getName())
                             );
                         }
@@ -231,7 +235,7 @@ public class DamJdbcQueryParser {
                     Table resolvedColumnTable = resolveColumnTableOrFail(column, referencedTablesList);
                     Table resolvedColumnTableWithoutAlias = tableNamesAndAliasesFinder.getTableWithoutAlias(resolvedColumnTable);
                         controlFieldsByTable.addEntry(
-                                resolvedColumnTableWithoutAlias.getFullyQualifiedName(),
+                                getTableName(resolvedColumnTableWithoutAlias),
                                 DamSchemaUtils.fieldWithMissingInfo(column.getColumnName())
                         );
                 }
