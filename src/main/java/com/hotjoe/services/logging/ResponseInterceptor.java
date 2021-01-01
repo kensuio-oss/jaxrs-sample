@@ -102,8 +102,9 @@ public class ResponseInterceptor implements WriterInterceptor {
         public void close() throws IOException {
             out.close();
             String content = out.toString(this.encoding);
-            Set<FieldDef> fieldDefs = KensuJsonSchemaInferrer.inferSchema(content);
-            this.span.setTag(new GenericTag<Set<FieldDef>>("response.schema"), fieldDefs);
+            Entry<Set<FieldDef>, Map<String, Map<String, Double>>> inferredSchemaAndStats = KensuJsonSchemaInferrer.inferSchemaAndStats(content);
+            this.span.setTag(new GenericTag<Set<FieldDef>>("response.schema"), inferredSchemaAndStats.getKey());
+            this.span.setTag(new GenericTag<Map<String, Map<String, Double>>>("response.stats"), inferredSchemaAndStats.getValue());
         }
     }
 

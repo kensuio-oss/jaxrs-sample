@@ -1,5 +1,9 @@
 package io.kensu.collector;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import io.kensu.collector.DamProcessEnvironment;
 import io.kensu.collector.model.DamBatchBuilder;
 import io.kensu.collector.model.DamDataCatalogEntry;
@@ -27,6 +31,9 @@ import net.sf.jsqlparser.JSQLParserException;
 import java.time.Instant;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,7 +48,19 @@ import com.fasterxml.jackson.databind.deser.std.StdValueInstantiator;
 public class TracerReporter implements Reporter {
     static final Logger logger = Logger.getLogger(TracerReporter.class.getName());
 
-    private final ConcurrentHashMultimap<SpanData> spanChildrenCache = new ConcurrentHashMultimap<>();
+    private final Cache<String, Set<SpanData>> spanChildrenCache = CacheBuilder.newBuilder() // TODO read from Config
+                                                                .maximumSize(10000)
+                                                                .expireAfterWrite(10, TimeUnit.MINUTES)
+                                                                //.removalListener(MY_LISTENER)
+                                                                .<String, Set<SpanData>>build();
+    synchronized private void addToCache(String parentId, SpanData toBeCachedChildSpan) {
+        Set<SpanData> set = spanChildrenCache.getIfPresent(parentId);
+        if (set == null) {
+            set = new HashSet<>();
+        }
+        set.add(toBeCachedChildSpan);
+        spanChildrenCache.put(parentId, set);
+    }
 
     //public TracerReporter(Logger logger, AbstractUrlsTransformer springUrlsTransformer) {
     public TracerReporter() {
@@ -67,7 +86,7 @@ public class TracerReporter implements Reporter {
     public void finish(Instant timestamp, SpanData span) {
         String maybeParentId = span.references.get("child_of");
         if (maybeParentId != null) {
-            spanChildrenCache.addEntry(maybeParentId, span);
+            addToCache(maybeParentId, span);
         } else {
             // //   - http.status_code: 200
             // //   - component: java-web-servlet
@@ -116,13 +135,16 @@ public class TracerReporter implements Reporter {
 
             String transformedHttpUrl = "http:"+httpMethod+":"+httpPathPattern;
             logger.warning("transformedHttpUrl: "+ transformedHttpUrl);
-            if ((httpStatus >= 200) && (httpStatus < 300) && transformedHttpUrl != null && httpMethod != null) {
+            if ((httpStatus >= 200) && (httpStatus < 300)) {
                 Map<String, DamDataCatalogEntry> queriedTableCatalogEntries = new HashMap<>();
-                Set<SpanData> children = spanChildrenCache.get(span.spanId);
-                // children might be => "Query" then "serialize"  
+                Set<SpanData> children = spanChildrenCache.getIfPresent(span.spanId);
+                if (children == null) children = new HashSet<>();
+                Map<String, Map<String, Double>> statsByTable = new HashMap<>();
+                Map<String, Map<String, Double>> responseStats = null;
+
+                // children might be => "Query" then "serialize"
                 for (SpanData spanChild : children) {
                     toBeRemoved.add(spanChild);
-                    Map<String, Map<String, Double>> statsByTable = new HashMap<>();
                     if (spanChild.operationName.equals("Query")) {
                         /*
                             component	-> java-jdbc
@@ -157,7 +179,12 @@ public class TracerReporter implements Reporter {
                             }
                         }
 
-                        Set<SpanData> queryChildren = spanChildrenCache.get(spanChild.spanId);
+                        if (fieldsByTable == null) {
+                            continue;
+                        }
+
+                        Set<SpanData> queryChildren = spanChildrenCache.getIfPresent(spanChild.spanId);
+                        if (queryChildren == null) queryChildren = new HashSet<>();
                         for (SpanData queryStatsSpan : queryChildren) {
                             toBeRemoved.add(queryStatsSpan);
                             if (queryStatsSpan.operationName.equals("QueryResultStats")) {
@@ -186,9 +213,7 @@ public class TracerReporter implements Reporter {
                                     Map<String, Double> stats;
                                     if (!statsByTable.containsKey(db+"."+table)) {
                                         Map<String, Double> m = new HashMap<>();
-                                        if (dbCount.isPresent()) {
-                                            m.put("row.count", dbCount.get().doubleValue());
-                                        }
+                                        dbCount.ifPresent(number -> m.put("row.count", number.doubleValue()));
                                         statsByTable.put(db+"."+table, m);
                                     }
                                     stats = statsByTable.get(db+"."+table);
@@ -210,7 +235,6 @@ public class TracerReporter implements Reporter {
                             }
                         }
                         logger.fine("statsByTable: " + statsByTable);
-                        // TODO Attach stats to all tables in this 'Query' (******)
                     } else if (spanChild.operationName.equals("serialize")) {
                         logger.info(spanChild.toString());
                         /*
@@ -219,14 +243,39 @@ public class TracerReporter implements Reporter {
                         media.type	-> application/json
                         response.schema -> Set of FieldDef
                         */
-                        // MAYBE TODO Attach SAME (******) stats to all tables (inputs of the lineage) in this 'Query'
 
-                        // TODO  use schema and stats out of the response, see ResponseInterceptor
                         Set<FieldDef> fieldsSet = (Set<FieldDef>) spanChild.tags.get("response.schema");
+                        responseStats = (Map<String, Map<String, Double>>) spanChild.tags.get("response.stats");
                         endpointQueryCatalogEntryWithResultSchema = batchBuilder.addCatalogEntry("HTTP Request",
                                 fieldsSet, httpPathPattern, "http", defaultLocationRef, HttpDatasourceNameFormatter.INST);
                     }
                 }
+
+                final BiFunction<LineageRun, Map<String, Map<String, Double>>, Void> addStatsToLineageRun =
+                        (lineageRun, statsMap) -> {
+                            // TODO / FIXME
+                            // the same table might be present if different queries, with multiple stats (as results)
+                            //   we will keep only the last one thus, which can be a big issue... WHAT shall we do?
+                            //     => create several lineages per Query for example may do some goods ??!!
+                            statsMap.forEach((schemaAndTable, values) -> {
+                                Map<String, Object> stats = new HashMap<>();
+                                // bloody java compile for which Map<String, Object> and Map<String, Double> are incompatible
+                                values.forEach(stats::put);
+                                DamDataCatalogEntry entry = queriedTableCatalogEntries.get(schemaAndTable);
+                                if (entry != null) {
+                                    DataStatsPK statsPK = new DataStatsPK()
+                                            .schemaRef(new SchemaRef().byPK(entry.damSchema.getPk()))
+                                            .lineageRunRef(new LineageRunRef().byPK(lineageRun.getPk()));
+                                    DataStats dataStats = new DataStats().pk(statsPK).stats(stats);
+                                    batchBuilder.getBatch()
+                                            .addDataStatsItem(new BatchDataStats().timestamp(Lineages.NOW.apply())
+                                                                                    .entity(dataStats));
+                                } else {
+                                    logger.warning("We can't connect the built stats to its catalog entry, for table: " + schemaAndTable);
+                                }
+                            });
+                            return null;
+                        };
 
                 Process process = damEnv.enqueProcess(batchBuilder);
 
@@ -252,7 +301,8 @@ public class TracerReporter implements Reporter {
                         BatchEntityReport lineageRunInBatch = lineageDefIn.runIn(new ProcessRunRef().byPK(processRun.getPk()), Lineages.NOW.apply(), false);
                         batchBuilder.addFromOtherBatch(lineageRunInBatch);
                         BatchLineageRun lineageRunIn = lineageRunInBatch.getLineageRuns().get(0);
-                        // TODO add stats!!! to lineageRunIn
+                        // TODO add endpoint stats!!! to lineageRunIn if any found...
+                        addStatsToLineageRun.apply(lineageRunIn.getEntity(), statsByTable);
                     }
                 }
 
@@ -276,16 +326,23 @@ public class TracerReporter implements Reporter {
                         BatchEntityReport lineageRunOutBatch = lineageDefOut.runIn(new ProcessRunRef().byPK(processRun.getPk()), Lineages.NOW.apply(), false);
                         batchBuilder.addFromOtherBatch(lineageRunOutBatch);
                         BatchLineageRun lineageRunOut = lineageRunOutBatch.getLineageRuns().get(0);
-                        // TODO add stats!!! to lineageRunOut
+                        addStatsToLineageRun.apply(lineageRunOut.getEntity(), statsByTable);
+
+                        DataStatsPK responseDataStatsPK = new DataStatsPK()
+                                .schemaRef(new SchemaRef().byPK(endpointQueryCatalogEntryWithResultSchema.damSchema.getPk()))
+                                .lineageRunRef(new LineageRunRef().byPK(lineageRunOut.getEntity().getPk()));
+                        final Map<String, Object> responseDataStatsMap = new HashMap<>();
+                        responseStats.forEach((k, map) -> map.forEach((subK, d) -> responseDataStatsMap.put(k+"."+subK, d)));
+                        DataStats responseDataStats = new DataStats().pk(responseDataStatsPK).stats(responseDataStatsMap);
+                        batchBuilder.getBatch()
+                                .addDataStatsItem(new BatchDataStats().timestamp(Lineages.NOW.apply())
+                                        .entity(responseDataStats));
                     }
                 }
             }
             //remove spans from cache!!!
-            toBeRemoved.forEach(spanChildrenCache::remove);
+            spanChildrenCache.invalidateAll(toBeRemoved);
             reportBatchToDam(batchBuilder);
-
-            // FIXME spans might still accumulate in the cache, we should create something like an LRU Cache
-            //   given that queries should not run for hours...
         }
     }
 
@@ -295,9 +352,6 @@ public class TracerReporter implements Reporter {
             if (damEnv.isOffline()) {
                 apiClient = new OfflineFileApiClient();
             } else {
-                logger.info("DIM SHOULD BE OFFLINE ????: "  + damEnv.isOffline());
-                logger.info("DIM SHOULD BE OFFLINE prop: "  + System.getProperty("DAM_OFFLINE"));
-                logger.info("DIM SHOULD BE OFFLINE env: "  + System.getenv("DAM_OFFLINE"));
                 String authToken = damEnv.damIngestionToken();
                 String serverHost = damEnv.damIngestionUrl();
                 apiClient = new ApiClient()
