@@ -26,6 +26,7 @@ import net.sf.jsqlparser.util.deparser.StatementDeParser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -229,17 +230,17 @@ public class DamJdbcQueryParser {
                 });
             }
             // control lineage
-            ((PlainSelect)selectStatement.getSelectBody()).getWhere().accept(new ExpressionVisitorAdapter() {
+            Optional.ofNullable(((PlainSelect) selectStatement.getSelectBody()).getWhere()).ifPresent(w -> w.accept(new ExpressionVisitorAdapter() {
                 @Override
                 public void visit(Column column) {
                     Table resolvedColumnTable = resolveColumnTableOrFail(column, referencedTablesList);
                     Table resolvedColumnTableWithoutAlias = tableNamesAndAliasesFinder.getTableWithoutAlias(resolvedColumnTable);
-                        controlFieldsByTable.addEntry(
-                                getTableName(resolvedColumnTableWithoutAlias),
-                                DamSchemaUtils.fieldWithMissingInfo(column.getColumnName())
-                        );
+                    controlFieldsByTable.addEntry(
+                            getTableName(resolvedColumnTableWithoutAlias),
+                            DamSchemaUtils.fieldWithMissingInfo(column.getColumnName())
+                    );
                 }
-            });
+            }));
             logger.fine("schema: (table -> fieldDef)" + dataFieldsByTable);
         }
         return new ReferencedSchemaFieldsInfo("select", dataFieldsByTable, controlFieldsByTable);

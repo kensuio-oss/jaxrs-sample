@@ -47,6 +47,7 @@
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
         <class>com.hotjoe.services.model.Product</class>
         <class>com.hotjoe.services.model.ProductLine</class>
+        <class>com.hotjoe.services.model.OrderDetails</class>
         <properties>
             <property name="javax.persistence.jdbc.driver" value="io.opentracing.contrib.jdbc.TracingDriver" />
             <property name="javax.persistence.jdbc.url" value="jdbc:tracing:mysql://localhost:3306/classicmodels" />

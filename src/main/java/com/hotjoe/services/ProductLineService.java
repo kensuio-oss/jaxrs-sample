@@ -1,6 +1,5 @@
 package com.hotjoe.services;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -18,6 +17,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
+import com.hotjoe.services.dto.ProductLineView;
 import com.hotjoe.services.model.Product;
 import com.hotjoe.services.model.ProductLine;
 
@@ -87,41 +87,6 @@ public class ProductLineService {
         
         return Response.ok(productLines).build();
     }
-	
-	
-	public static class ProductView {
-		@JsonProperty public final String productCode;
-		@JsonProperty public final String productName;
-		@JsonProperty public final String productScale;
-		@JsonProperty public final String productVendor;
-		@JsonProperty public final String productDescription;
-		@JsonProperty public final Short  quantityInStock;
-		@JsonProperty public final Double buyPrice;
-		@JsonProperty public final Double MSRP;
 
-		public ProductView(Product product) {
-			this.productCode = product.getProductCode();
-			this.productName = product.getProductName();
-			this.productScale = product.getProductScale();
-			this.productVendor = product.getProductVendor();
-			this.productDescription = product.getProductDescription();
-			this.quantityInStock = product.getQuantityInStock();
-			this.buyPrice = product.getBuyPrice();
-			this.MSRP = product.getMSRP();
-		}
-	}
-
-	public static class ProductLineView {
-		@JsonProperty public final String productLine;
-		@JsonProperty public final String textDescription;
-		@JsonProperty public final String htmlDescription;
-		@JsonProperty public final Collection<ProductView> products;
-		public ProductLineView(ProductLine productLine) {
-			this.productLine = productLine.getProductLine();
-			this.textDescription = productLine.getTextDescription();
-			this.htmlDescription = productLine.getHtmlDescription();
-			this.products = productLine.getProducts().stream().map(ProductView::new).collect(Collectors.toList());
-		}
-	}
 
 }
