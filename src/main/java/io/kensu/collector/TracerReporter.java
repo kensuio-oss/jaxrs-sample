@@ -4,6 +4,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.hotjoe.services.logging.ClientLoggingFilter;
 import io.kensu.collector.DamProcessEnvironment;
 import io.kensu.collector.model.DamBatchBuilder;
 import io.kensu.collector.model.DamDataCatalogEntry;
@@ -362,6 +363,8 @@ public class TracerReporter implements Reporter {
                 apiClient = new ApiClient()
                         .setBasePath(serverHost)
                         .addDefaultHeader("X-Auth-Token", authToken);
+                // TODO => only for testing... or debugging (logs the produced json)
+                apiClient.getHttpClient().register(new ClientLoggingFilter());
             }
             ManageKensuDamEntitiesApi apiInstance = new ManageKensuDamEntitiesApi(apiClient);
             BatchEntityReportResult result = apiInstance.reportEntityBatch(batchBuilder.getCompactedBatch());
