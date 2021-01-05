@@ -1,7 +1,7 @@
 package io.kensu.example.jboss;
 
-import io.kensu.example.jboss.dto.OrderDetailsView;
-import io.kensu.example.jboss.model.OrderDetails;
+import io.kensu.example.jboss.model.dto.OrderDetailsView;
+import io.kensu.example.jboss.model.entities.OrderDetails;
 
 import javax.persistence.*;
 import javax.ws.rs.*;

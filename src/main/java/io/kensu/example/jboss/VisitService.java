@@ -16,7 +16,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
-import io.kensu.example.jboss.model.Visit;
+import io.kensu.example.jboss.model.entities.Visit;
 
 @org.eclipse.microprofile.opentracing.Traced
 @Path("/v1/visit")

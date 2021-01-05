@@ -1,7 +1,7 @@
-package io.kensu.example.jboss.dto;
+package io.kensu.example.jboss.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kensu.example.jboss.model.ProductLine;
+import io.kensu.example.jboss.model.entities.ProductLine;
 
 import java.util.Collection;
 import java.util.stream.Collectors;

@@ -1,4 +1,4 @@
-package io.kensu.example.jboss.model;
+package io.kensu.example.jboss.model.entities;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;

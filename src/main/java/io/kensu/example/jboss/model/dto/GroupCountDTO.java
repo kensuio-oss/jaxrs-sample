@@ -1,6 +1,6 @@
-package io.kensu.example.jboss.dto;
+package io.kensu.example.jboss.model.dto;
 
-import io.kensu.example.jboss.model.Product;
+import io.kensu.example.jboss.model.entities.Product;
 
 public class GroupCountDTO {
     private ProductView product;

@@ -1,7 +1,7 @@
-package io.kensu.example.jboss.dto;
+package io.kensu.example.jboss.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kensu.example.jboss.model.Product;
+import io.kensu.example.jboss.model.entities.Product;
 
 public class ProductView {
     @JsonProperty
