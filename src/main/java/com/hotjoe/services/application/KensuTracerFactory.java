@@ -104,6 +104,12 @@ public class KensuTracerFactory implements TracerFactory {
         System.setProperty("DAM_CODE_VERSION", DAM_CODE_VERSION);
 
         io.kensu.collector.TracerReporter reporter = new io.kensu.collector.TracerReporter();
+
+        // JDBC
+        io.opentracing.contrib.jdbc.TracingDriver.setInterceptorMode(true);
+        io.opentracing.contrib.jdbc.TracingDriver.setTraceEnabled(true);
+        io.opentracing.contrib.jdbc.TracingDriver.setInterceptorProperty(false);
+
         Tracer javaTracer = new TracerR(backendTracer, reporter, backendTracer.scopeManager());        
         return javaTracer;
     }

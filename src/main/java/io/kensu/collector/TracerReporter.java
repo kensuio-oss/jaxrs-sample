@@ -2,19 +2,13 @@ package io.kensu.collector;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.hotjoe.services.logging.ClientLoggingFilter;
-import io.kensu.collector.DamProcessEnvironment;
 import io.kensu.collector.model.DamBatchBuilder;
 import io.kensu.collector.model.DamDataCatalogEntry;
 import io.kensu.collector.model.DamSchemaUtils;
-import io.kensu.collector.model.SimpleDamLineageBuilder;
 import io.kensu.collector.model.datasource.HttpDatasourceNameFormatter;
 import io.kensu.collector.model.datasource.JdbcDatasourceNameFormatter;
 import io.kensu.dim.client.util.DataSources;
 import io.kensu.dim.client.util.Lineages;
-import io.kensu.utils.ConcurrentHashMultimap;
 import io.kensu.dim.client.invoker.ApiClient;
 import io.kensu.dim.client.invoker.ApiException;
 import io.kensu.dim.client.api.ManageKensuDamEntitiesApi;
@@ -33,16 +27,11 @@ import java.time.Instant;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
-import com.fasterxml.jackson.databind.deser.std.StdValueInstantiator;
 
 //import static io.kensu.json.DamJsonSchemaInferrer.DAM_OUTPUT_SCHEMA_TAG;
 
@@ -363,8 +352,6 @@ public class TracerReporter implements Reporter {
                 apiClient = new ApiClient()
                         .setBasePath(serverHost)
                         .addDefaultHeader("X-Auth-Token", authToken);
-                // TODO => only for testing... or debugging (logs the produced json)
-                apiClient.getHttpClient().register(new ClientLoggingFilter());
             }
             ManageKensuDamEntitiesApi apiInstance = new ManageKensuDamEntitiesApi(apiClient);
             BatchEntityReportResult result = apiInstance.reportEntityBatch(batchBuilder.getCompactedBatch());

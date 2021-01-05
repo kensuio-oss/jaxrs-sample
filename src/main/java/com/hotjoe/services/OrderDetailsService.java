@@ -1,9 +1,7 @@
 package com.hotjoe.services;
 
 import com.hotjoe.services.dto.OrderDetailsView;
-import com.hotjoe.services.logging.Logged;
 import com.hotjoe.services.model.OrderDetails;
-import com.hotjoe.services.model.ProductLine;
 
 import javax.persistence.*;
 import javax.ws.rs.*;
@@ -19,7 +17,6 @@ public class OrderDetailsService {
     private static final EntityManagerFactory ENTITY_MANAGER_FACTORY = Persistence
             .createEntityManagerFactory("classicmodels");
 
-    @Logged  // this request is logged
     @GET
     @Path("/{orderNumber}")
     @Produces("application/json")
@@ -47,7 +44,6 @@ public class OrderDetailsService {
         return Response.ok(orderDetailsView).build();
     }
 
-    @Logged  // this request is logged
     @GET
     @Path("/count/by-product")
     @Produces("application/json")
@@ -74,7 +70,6 @@ public class OrderDetailsService {
         return Response.ok(productLineGroupCountView).build();
     }
 
-    @Logged  // this request is logged
     @GET
     @Path("/product-line/{productLine}")
     @Produces("application/json")

@@ -18,11 +18,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import com.hotjoe.services.dto.ProductLineView;
-import com.hotjoe.services.model.Product;
 import com.hotjoe.services.model.ProductLine;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.hotjoe.services.logging.Logged;
 
 @org.eclipse.microprofile.opentracing.Traced
 @Path("/v1/product-line")
@@ -31,7 +27,6 @@ public class ProductLineService {
     private static final EntityManagerFactory ENTITY_MANAGER_FACTORY = Persistence
             .createEntityManagerFactory("classicmodels");
 
-    @Logged  // this request is logged
     @GET
     @Path("/{productLine}")
     @Produces("application/json")
@@ -59,7 +54,6 @@ public class ProductLineService {
         return Response.ok(productLineView).build();
     }
 
-    @Logged  // this request is logged
     @GET
     @Path("/")
     @Produces("application/json")

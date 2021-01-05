@@ -53,7 +53,7 @@ public class KensuTracingInterceptorFeature implements DynamicFeature {
     public KensuTracingInterceptorFeature() {
         Builder builder = new ServerTracingDynamicFeature.Builder(GlobalTracer.get())
                 .withDecorators(List.of(ServerSpanDecorator.STANDARD_TAGS, decorator)).withTraceSerialization(true)
-                .withSerializationDecorators(List.of(InterceptorSpanDecorator.STANDARD_TAGS, serDecorator));
+                .withSerializationDecorators(List.of(InterceptorSpanDecorator.STANDARD_TAGS));
         this.tracingFeature = builder.build();
     }
 
@@ -100,33 +100,6 @@ public class KensuTracingInterceptorFeature implements DynamicFeature {
         public void decorateResponse(ContainerResponseContext responseContext, Span span) {
         }
 
-    };
-
-    private InterceptorSpanDecorator serDecorator = new InterceptorSpanDecorator() {
-        /**
-         * Decorate spans by outgoing object.
-         *
-         * @param context
-         * @param span
-         */
-        public void decorateRead(InterceptorContext context, Span span) {
-            // nothing
-        }
-
-        /**
-         * Decorate spans by outgoing object.
-         *
-         * @param context
-         * @param span
-         */
-        public void decorateWrite(InterceptorContext context, Span span) {
-            if (context instanceof WriterInterceptorContext) {
-                WriterInterceptorContext c = (WriterInterceptorContext) context;
-                // can check format with c.getMediaType() == "application/json"
-                // can check type of entity with getType => java.util.ArrayList (e.g.)
-                // can use the entity => the ArrayList of object
-            }
-        }
     };
 
 }

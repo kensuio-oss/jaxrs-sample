@@ -16,6 +16,10 @@ import java.util.logging.Logger;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
 
+/********
+ * NOT SURE THIS ONE IS REALLY NEEDED
+ */
+
 @WebListener
 public class TracingContextListener implements ServletContextListener {
   static final Logger logger = Logger.getLogger(TracingContextListener.class.getName());
@@ -45,13 +49,6 @@ public class TracingContextListener implements ServletContextListener {
         logger.info("Global tracer registered is the CDI injected one, so we're good");
       }
     }
-
-    // JDBC
-    io.opentracing.contrib.jdbc.TracingDriver.setInterceptorMode(true);
-    io.opentracing.contrib.jdbc.TracingDriver.setTraceEnabled(true);
-    io.opentracing.contrib.jdbc.TracingDriver.setInterceptorProperty(false);
-
-    // Add Kensu Reporter
   }
 
   @Override

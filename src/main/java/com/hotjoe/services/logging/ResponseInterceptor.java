@@ -41,7 +41,6 @@ import io.opentracing.util.GlobalTracer;
  * 
  */
 @Provider
-@Logged
 public class ResponseInterceptor implements WriterInterceptor {
     private static Logger logger = Logger.getLogger(ResponseInterceptor.class.getName());
 
