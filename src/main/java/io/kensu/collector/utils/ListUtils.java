@@ -1,4 +1,4 @@
-package io.kensu.utils;
+package io.kensu.collector.utils;
 
 import java.util.ArrayList;
 import java.util.List;

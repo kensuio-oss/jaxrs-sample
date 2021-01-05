@@ -4,14 +4,14 @@ import io.kensu.collector.model.datasource.DatasourceNameFormatter;
 import io.kensu.dim.client.model.*;
 import io.kensu.dim.client.model.Process;
 import io.kensu.dim.client.util.Compact;
-import io.kensu.utils.ConcurrentHashMultimap;
+import io.kensu.collector.utils.ConcurrentHashMultimap;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static io.kensu.utils.ListUtils.orEmptyList;
-import static io.kensu.utils.TimeUtils.now;
+import static io.kensu.collector.utils.ListUtils.orEmptyList;
+import static io.kensu.collector.utils.TimeUtils.now;
 
 public class DamBatchBuilder {
     protected BatchEntityReport batch = new BatchEntityReport();;

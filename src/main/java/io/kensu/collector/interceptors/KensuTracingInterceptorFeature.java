@@ -1,4 +1,4 @@
-package io.kensu.example.jboss.listener;
+package io.kensu.collector.interceptors;
 
 import java.util.List;
 import java.util.Map;
@@ -15,7 +15,7 @@ import javax.ws.rs.core.FeatureContext;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
 
-import io.kensu.utils.GenericTag;
+import io.kensu.collector.utils.GenericTag;
 import org.jboss.resteasy.core.ResourceInvoker;
 import org.jboss.resteasy.core.ResourceMethodRegistry;
 import org.jboss.resteasy.core.interception.PostMatchContainerRequestContext;

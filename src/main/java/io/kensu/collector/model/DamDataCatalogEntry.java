@@ -5,7 +5,7 @@ import io.kensu.dim.client.util.DataSources;
 
 import java.util.List;
 
-import static io.kensu.utils.TimeUtils.now;
+import static io.kensu.collector.utils.TimeUtils.now;
 
 public class DamDataCatalogEntry extends DataSources.DataCatalogEntry {
 

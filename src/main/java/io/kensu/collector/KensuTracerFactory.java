@@ -1,4 +1,4 @@
-package io.kensu.example.jboss.application;
+package io.kensu.collector;
 
 import io.opentracing.Tracer;
 import io.opentracing.contrib.tracerresolver.TracerFactory;

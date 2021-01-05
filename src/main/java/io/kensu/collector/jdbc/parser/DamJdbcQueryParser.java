@@ -1,8 +1,8 @@
-package io.kensu.jdbc.parser;
+package io.kensu.collector.jdbc.parser;
 
 import io.kensu.collector.model.DamSchemaUtils;
 import io.kensu.dim.client.model.FieldDef;
-import io.kensu.utils.ConcurrentHashMultimap;
+import io.kensu.collector.utils.ConcurrentHashMultimap;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;
@@ -10,10 +10,8 @@ import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
 import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Database;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.StatementVisitorAdapter;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.*;
@@ -32,7 +30,7 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static io.kensu.utils.ListUtils.orEmptyList;
+import static io.kensu.collector.utils.ListUtils.orEmptyList;
 
 public class DamJdbcQueryParser {
     private final Logger logger = Logger.getLogger(DamJdbcQueryParser.class.getName());

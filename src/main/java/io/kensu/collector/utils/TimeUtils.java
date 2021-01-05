@@ -1,4 +1,4 @@
-package io.kensu.utils;
+package io.kensu.collector.utils;
 
 public class TimeUtils {
     public static Long now() {

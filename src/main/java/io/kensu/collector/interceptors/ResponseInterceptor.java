@@ -1,4 +1,4 @@
-package io.kensu.example.jboss.logging;
+package io.kensu.collector.interceptors;
 
 import java.io.*;
 import java.util.*;
@@ -17,8 +17,8 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
 import io.kensu.dim.client.model.FieldDef;
-import io.kensu.utils.GenericTag;
-import io.kensu.utils.KensuJsonSchemaInferrer;
+import io.kensu.collector.utils.GenericTag;
+import io.kensu.collector.utils.json.KensuJsonSchemaInferrer;
 import org.apache.commons.io.output.TeeOutputStream;
 
 import io.opentracing.Span;

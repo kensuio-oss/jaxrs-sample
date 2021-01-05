@@ -1,1 +1,1 @@
-io.kensu.example.jboss.application.KensuTracerFactory
+io.kensu.collector.KensuTracerFactory

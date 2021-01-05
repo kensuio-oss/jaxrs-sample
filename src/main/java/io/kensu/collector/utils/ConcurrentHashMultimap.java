@@ -1,4 +1,4 @@
-package io.kensu.utils;
+package io.kensu.collector.utils;
 
 import java.util.HashSet;
 import java.util.Map;

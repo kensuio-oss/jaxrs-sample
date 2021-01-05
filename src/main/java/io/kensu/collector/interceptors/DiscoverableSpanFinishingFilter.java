@@ -1,4 +1,4 @@
-package io.kensu.example.jboss.listener;
+package io.kensu.collector.interceptors;
 
 import io.opentracing.contrib.jaxrs2.server.SpanFinishingFilter;
 import javax.servlet.DispatcherType;

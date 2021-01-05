@@ -1,14 +1,12 @@
-package io.kensu.utils;
+package io.kensu.collector.utils.json;
 
 import com.github.wnameless.json.flattener.FlattenMode;
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.google.common.base.Joiner;
-import io.kensu.collector.model.DamSchemaUtils;
 import io.kensu.dim.client.model.FieldDef;
 
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 

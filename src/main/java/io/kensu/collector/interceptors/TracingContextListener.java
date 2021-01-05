@@ -1,4 +1,4 @@
-package io.kensu.example.jboss.listener;
+package io.kensu.collector.interceptors;
 
 import javax.inject.Inject;
 import javax.servlet.ServletContextEvent;

@@ -1,9 +1,9 @@
-package io.kensu.jdbc.parser;
+package io.kensu.collector.jdbc.parser;
 
 import java.util.Map;
 
 import io.kensu.dim.client.model.FieldDef;
-import io.kensu.utils.ConcurrentHashMultimap;
+import io.kensu.collector.utils.ConcurrentHashMultimap;
 
 public class ReferencedSchemaFieldsInfo {
     public final ConcurrentHashMultimap<Map.Entry<FieldDef, String>> data;
