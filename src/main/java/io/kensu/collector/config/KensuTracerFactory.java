@@ -1,4 +1,4 @@
-package io.kensu.collector;
+package io.kensu.collector.config;
 
 import io.opentracing.Tracer;
 import io.opentracing.contrib.tracerresolver.TracerFactory;

@@ -1,4 +1,4 @@
-package io.kensu.collector.jdbc.parser;
+package io.kensu.collector.utils.jdbc.parser;
 
 import io.kensu.collector.model.DamSchemaUtils;
 import io.kensu.dim.client.model.FieldDef;

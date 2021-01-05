@@ -2,6 +2,7 @@ package io.kensu.collector;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import io.kensu.collector.config.DamProcessEnvironment;
 import io.kensu.collector.model.DamBatchBuilder;
 import io.kensu.collector.model.DamDataCatalogEntry;
 import io.kensu.collector.model.DamSchemaUtils;
@@ -15,8 +16,8 @@ import io.kensu.dim.client.api.ManageKensuDamEntitiesApi;
 import io.kensu.dim.client.invoker.OfflineFileApiClient;
 import io.kensu.dim.client.model.*;
 import io.kensu.dim.client.model.Process;
-import io.kensu.collector.jdbc.parser.DamJdbcQueryParser;
-import io.kensu.collector.jdbc.parser.ReferencedSchemaFieldsInfo;
+import io.kensu.collector.utils.jdbc.parser.DamJdbcQueryParser;
+import io.kensu.collector.utils.jdbc.parser.ReferencedSchemaFieldsInfo;
 import io.opentracing.contrib.reporter.Reporter;
 import io.opentracing.contrib.reporter.SpanData;
 import io.opentracing.tag.Tag;

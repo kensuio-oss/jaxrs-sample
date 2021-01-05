@@ -1,4 +1,4 @@
-package io.kensu.collector;
+package io.kensu.collector.config;
 
 import io.kensu.collector.model.DamBatchBuilder;
 import io.kensu.dim.client.model.*;

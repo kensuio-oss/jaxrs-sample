@@ -1,4 +1,4 @@
-package io.kensu.collector.interceptors;
+package io.kensu.collector.config;
 
 import javax.inject.Inject;
 import javax.servlet.ServletContextEvent;

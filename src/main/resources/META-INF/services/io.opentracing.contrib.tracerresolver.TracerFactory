@@ -1,1 +1,1 @@
-io.kensu.collector.KensuTracerFactory
+io.kensu.collector.config.KensuTracerFactory
