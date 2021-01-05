@@ -7,8 +7,8 @@
     <!--    clickhouse-->
     <!--<persistence-unit name="tutorialapp" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
-        <class>com.hotjoe.services.model.Visit</class>
-        <class>com.hotjoe.services.model.Hit</class>
+        <class>io.kensu.example.jboss.model.Visit</class>
+        <class>io.kensu.example.jboss.model.Hit</class>
         <properties>
             <property name="javax.persistence.jdbc.driver" value="io.opentracing.contrib.jdbc.TracingDriver" />
             <property name="javax.persistence.jdbc.url" value="jdbc:tracing:clickhouse://localhost:8123/tutorial" />
@@ -19,8 +19,8 @@
     </persistence-unit>
     <persistence-unit name="classicmodels" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
-        <class>com.hotjoe.services.model.Product</class>
-        <class>com.hotjoe.services.model.ProductLine</class>
+        <class>io.kensu.example.jboss.model.Product</class>
+        <class>io.kensu.example.jboss.model.ProductLine</class>
         <properties>
             <property name="javax.persistence.jdbc.driver" value="io.opentracing.contrib.jdbc.TracingDriver" />
             <property name="javax.persistence.jdbc.url" value="jdbc:tracing:clickhouse://localhost:8123/classicmodels" />
@@ -33,8 +33,8 @@
     <!-- mysql-->
     <persistence-unit name="tutorialapp" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
-        <class>com.hotjoe.services.model.Visit</class>
-        <class>com.hotjoe.services.model.Hit</class>
+        <class>io.kensu.example.jboss.model.Visit</class>
+        <class>io.kensu.example.jboss.model.Hit</class>
         <properties>
             <property name="javax.persistence.jdbc.driver" value="io.opentracing.contrib.jdbc.TracingDriver" />
             <property name="javax.persistence.jdbc.url" value="jdbc:tracing:clickhouse://localhost:8123/tutorial" />
@@ -45,9 +45,9 @@
     </persistence-unit>
     <persistence-unit name="classicmodels" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
-        <class>com.hotjoe.services.model.Product</class>
-        <class>com.hotjoe.services.model.ProductLine</class>
-        <class>com.hotjoe.services.model.OrderDetails</class>
+        <class>io.kensu.example.jboss.model.Product</class>
+        <class>io.kensu.example.jboss.model.ProductLine</class>
+        <class>io.kensu.example.jboss.model.OrderDetails</class>
         <properties>
             <property name="javax.persistence.jdbc.driver" value="io.opentracing.contrib.jdbc.TracingDriver" />
             <property name="javax.persistence.jdbc.url" value="jdbc:tracing:mysql://localhost:3306/classicmodels" />

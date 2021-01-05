@@ -1,1 +1,1 @@
-com.hotjoe.services.application.KensuTracerFactory
+io.kensu.example.jboss.application.KensuTracerFactory
