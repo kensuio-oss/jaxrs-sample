@@ -3,12 +3,14 @@ package com.hotjoe.services;
 import com.hotjoe.services.dto.OrderDetailsView;
 import com.hotjoe.services.logging.Logged;
 import com.hotjoe.services.model.OrderDetails;
+import com.hotjoe.services.model.ProductLine;
 
 import javax.persistence.*;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @org.eclipse.microprofile.opentracing.Traced
 @Path("/v1/order-details")
@@ -70,6 +72,32 @@ public class OrderDetailsService {
     	}
         
         return Response.ok(productLineGroupCountView).build();
+    }
+
+    @Logged  // this request is logged
+    @GET
+    @Path("/product-line/{productLine}")
+    @Produces("application/json")
+    public Response findForProductLine(@PathParam("productLine") String productLine, @QueryParam("maxResults") Integer maxResults) throws WebApplicationException {
+        EntityManager em = ENTITY_MANAGER_FACTORY.createEntityManager();
+		String query = "SELECT p FROM OrderDetails p left join p.product as pp left join pp.productLine as ppp WHERE ppp.productLine = :productLine";
+
+        if (maxResults == null) {
+            maxResults = 100;
+        }
+		TypedQuery<OrderDetails> tq = em.createQuery(query, OrderDetails.class).setMaxResults(maxResults).setParameter("productLine", productLine);
+    	List resultView = null;
+    	try {
+			resultView = tq.getResultList().stream().map(OrderDetailsView::new).collect(Collectors.toList());
+    	}
+    	catch(NoResultException ex) {
+    		ex.printStackTrace();
+    	}
+    	finally {
+    		em.close();
+    	}
+
+        return Response.ok(resultView).build();
     }
 
 }
