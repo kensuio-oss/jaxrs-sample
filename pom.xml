@@ -15,6 +15,7 @@
         <junit.version>4.13.1</junit.version>
         <version.arquillian>1.6.0.Final</version.arquillian>
         <version.wildfly>20.0.1.Final</version.wildfly>
+        <path.to.jboss.deployments.dir>${user.home}/opt/wildfly/standalone/deployments</path.to.jboss.deployments.dir>
     </properties>
 
     <repositories>
@@ -366,46 +367,41 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.1.2</version>
-                <executions>
-                    <execution>
-                        <id>copy-installed</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>${project.groupId}</groupId>
-                                    <artifactId>${project.artifactId}</artifactId>
-                                    <version>${project.version}</version>
-                                    <type>${project.packaging}</type>
-                                </artifactItem>
-                            </artifactItems>
-<!--                            <outputDirectory>./docker-dir/deployments/</outputDirectory>-->
-                            <outputDirectory>${path.to.jboss.deployments.dir}</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
     <profiles>
         <profile>
-            <id>andy</id>
-            <activation>
-                <property>
-                    <name>env.USER</name>
-                    <value>andy</value>
-                </property>
-            </activation>
-            <properties>
-                <path.to.jboss.deployments.dir>${user.home}/opt/wildfly/standalone/deployments</path.to.jboss.deployments.dir>
-            </properties>
+            <id>copy-war</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <executions>
+                            <execution>
+                                <id>copy-installed</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>${project.groupId}</groupId>
+                                            <artifactId>${project.artifactId}</artifactId>
+                                            <version>${project.version}</version>
+                                            <type>${project.packaging}</type>
+                                        </artifactItem>
+                                    </artifactItems>
+                                    <!--  <outputDirectory>./docker-dir/deployments/</outputDirectory>-->
+                                    <outputDirectory>${path.to.jboss.deployments.dir}</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>

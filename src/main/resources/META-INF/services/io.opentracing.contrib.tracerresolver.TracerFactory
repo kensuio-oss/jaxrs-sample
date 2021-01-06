@@ -1,1 +1,1 @@
-com.hotjoe.services.application.KensuTracerFactory
+io.kensu.collector.config.KensuTracerFactory
