@@ -7,6 +7,7 @@ import io.kensu.dim.client.model.Process;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class DamProcessEnvironment {
 
@@ -57,10 +58,13 @@ public class DamProcessEnvironment {
     public List<ProjectRef> getDamProjectRefs(DamBatchBuilder batchBuilder){
         String projectsStr = getOptEnv("DAM_PROJECTS", null);
         if (projectsStr != null){
-            List<String> projects = Arrays.asList(projectsStr.trim().split(";"));
+            List<String> projects = Arrays.stream(projectsStr.trim()
+                                            .split(";")).map(String::trim)
+                                            .filter(e->e.length()>0)
+                                            .collect(Collectors.toList());
             if (projects.size() == 0) return null;
             List<ProjectRef> projectRefs = new ArrayList<>();
-            for (String projectName: projectsStr.split(";")){
+            for (String projectName: projects){
                 Project project = new Project().pk(new ProjectPK().name(projectName));
                 batchBuilder.add(project);
                 projectRefs.add(new ProjectRef().byPK(project.getPk()));
