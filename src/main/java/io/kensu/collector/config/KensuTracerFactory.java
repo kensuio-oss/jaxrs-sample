@@ -49,7 +49,7 @@ public class KensuTracerFactory implements TracerFactory {
         System.setProperty("DAM_AUTH_TOKEN", properties.getProperty("kensu.collector.api.token"));
         System.setProperty("DAM_USER_NAME", properties.getProperty("kensu.collector.run.user", System.getenv("USER")));
         System.setProperty("DAM_RUN_ENVIRONMENT", properties.getProperty("kensu.collector.run.env"));
-        System.setProperty("DAM_PROJECTS", String.join(";", properties.getProperty("kensu.collector.run.projects","")));
+        System.setProperty("DAM_PROJECTS", properties.getProperty("kensu.collector.run.projects",""));
         System.setProperty("DAM_PROCESS_NAME", properties.getProperty("app.artifactId"));
         System.setProperty("DAM_CODEBASE_LOCATION", properties.getProperty("git.remote.origin.url"));
         System.setProperty("DAM_CODE_VERSION", properties.getProperty("app.version")+"_"+properties.getProperty("git.commit.id.describe-short"));

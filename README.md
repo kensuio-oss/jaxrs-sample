@@ -11,10 +11,10 @@ Databases
 ----
 
 ### MySQL
-
-### Clickhouse 
 The MySQL import script from the [sample MySQL database](https://www.mysqltutorial.org/mysql-sample-database.aspx/) is located in
 `src/test/resources/data-mysql.sql`.
+
+### Clickhouse 
 
 #### Tutorial database
 
@@ -248,6 +248,15 @@ The `war` file:
 * can be published to the `wildfly` standalone deployments folder:
   * manually: `cp target/sample-service-1.3.0.war ${wilxfly.home}/standalone/deployments`
   * automatically using a `maven profile` see [Settings.xml](#Settings.xml)
+
+## SSL (on kensu servers)
+Install certificate to your java keystore:
+
+```sh
+java.home=/Users/andy/Library/Java/JavaVirtualMachines/openjdk-15.0.1/Contents/Home/
+${java.home}bin/keytool -keystore ${java.home}lib/security/cacerts -noprompt -storepass changeit -importcert \
+ -trustcacerts -alias kensu_import_vault_ca -file  ~/Downloads/kensuio_vault_ca.crt
+```
 
 ## Try it
 Some examples:
