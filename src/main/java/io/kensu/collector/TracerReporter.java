@@ -398,6 +398,8 @@ public class TracerReporter implements Reporter {
         return sb.toString();
     }
 
+    // TODO maybe another one that would also benefits from the `Mapper` information in Hibernate (using Interceptors)?
+    // TODO external mapping file (manually or generated?)
     public final static Lineages.ProcessCatatalogEntry OUT_ENDS_WITH_IN = new Lineages.ProcessCatatalogEntry(java.util.Collections.singletonList(new Lineages.NoCheckProcessCatalogMapping() {
         public Map<Entry<DataSources.DataCatalogEntry, String>, Set<Entry<DataSources.DataCatalogEntry, String>>> apply(DataSources.DataCatalogEntry i, DataSources.DataCatalogEntry o) {
             Map<Entry<DataSources.DataCatalogEntry, String>, Set<Entry<DataSources.DataCatalogEntry, String>>> results =

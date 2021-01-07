@@ -240,6 +240,17 @@
             <artifactId>json-flattener</artifactId>
             <version>0.12.0</version>
         </dependency>
+
+<!--        <dependency>-->
+<!--            <groupId>com.google.zetasql</groupId>-->
+<!--            <artifactId>zetasql-client</artifactId>-->
+<!--            <version>2020.10.1</version>-->
+<!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.google.zetasql</groupId>-->
+<!--            <artifactId>zetasql-jni-channel</artifactId>-->
+<!--            <version>2020.10.1</version>-->
+<!--        </dependency>-->
     </dependencies>
 
     <dependencyManagement>
