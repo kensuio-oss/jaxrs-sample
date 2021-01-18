@@ -11,8 +11,13 @@ Databases
 ----
 
 ### MySQL
+
+#### Tutorial
 The MySQL import script from the [sample MySQL database](https://www.mysqltutorial.org/mysql-sample-database.aspx/) is located in
 `src/test/resources/data-mysql.sql`.
+
+#### Kensu demodb
+This instance is available on Kensu cloud and is used for the public Demos (used by Tableau).
 
 ### Clickhouse 
 
@@ -40,6 +45,8 @@ The application source is in the package `io.kensu.example.jboss` and consists o
 
 The data sources access for JPA/Hibernate are defined in `src/main/resources/META-INF/persistence.xml`.
 
+> Note: the Demo server has its password configured as an interpolated MAVEN property whic should be set by a profile.
+
 #### JBOSS env
 
 * `src/main/webapp/WEB-INF/beans.xml`: enables CDI discover (Weld) for the `KensuTracerFactory` see ([Tracer Bean](#Tracer Bean)).
@@ -56,11 +63,11 @@ Collector
 * `src/main/java/io/kensu/collector/config/KensuTracerFactory.java`: Configures the Jaeger and Kensu tracers, 
   and registers it as a `Bean`.
 * `src/main/resources/app.properties`: Maven interpolated file defining the application name and version.
-* `src/main/resources/kensu-tracer.properties`: configure the Kensu collector and high level information 
-  like application (process) name, code base, user, and such.
+* `src/main/resources/kensu-tracer.properties`: configures the Kensu collector (**using MAVEN interpolation to avoid committing URLs and Tokens**)
+  and high level information like application (process) name, code base, user, and such.
 * `src/main/resources/META-INF/services/io.opentracing.contrib.tracerresolver.TracerFactory`: Java service loader for 
   the `tracerresolver` dependency making sure that `io.opentracing.contrib.tracerresolver.TracerResolver.resolve
- picks the one we must use
+  picks the one we must use
   
 ##### Jaeger & more
 
@@ -189,8 +196,12 @@ Nexus, see below.
 
 Also to allow automatic local deployments, you enable activate the `copy-war` profile and create yours with your path to wildfly. 
 
+Moreover, the access to Kensu API Url and Tokens are configured in `app.properties`, therefore one can configure a profile for each environment
+to be used (demo101, demo102, qa3, ...) by setting the variable appropriately. The the maven build command needs to be adapted 
+to use the profile like `mvn -P kensu-demo-102`
+
 ### Settings.xml
-> **YOU NEED TO UPDATE IT WITH YOUR `wilfly.home`**
+> **YOU NEED TO UPDATE IT WITH YOUR `wilfly.home` and `PUT_TOKEN_HERE`**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -217,6 +228,21 @@ Also to allow automatic local deployments, you enable activate the `copy-war` pr
   
     <profiles>
         <profile>
+            <id>kensu-demo-102</id>
+            <activeByDefault/>
+            <properties>
+                <kensu.api.url>https://api-demo102.usnek.com</kensu.api.url>
+                <kensu.api.token>${PUT_TOKEN_HERE}</kensu.api.token>
+            </properties>
+        </profile>
+        <profile>
+            <id>demodb</id>
+            <activeByDefault/>
+            <properties>
+                <kensu.demodb.password>${PUT_PASSWORD_HERE}</kensu.demodb.password>
+            </properties>
+        </profile>
+        <profile>
             <id>my-copy-war</id>
             <activeByDefault/>
             <properties>
@@ -238,6 +264,7 @@ Make sure you have the collectors' dependencies installed on your maven machine,
 
 ## Build
 To build, simply run: `mvn clean package` to create the package (`war` file).
+> Note in order to inject the properties from your profiles in `settings.xml` don't forget to add the `-P` to your command!
 
 This will compile, run the unit tests, and create a war file that can be deployed into an JEE app server.
 
@@ -264,6 +291,7 @@ Some examples:
 - http://127.0.0.1:8080/rest/v1/product-line/Motorcycles
 - http://127.0.0.1:8080/rest/v1/product-line/Ships
 - http://127.0.0.1:8080/rest/v1/order-details/count/by-product
+- http://127.0.0.1:8080/rest/v1/customers/big-ones?greaterThanAmount=600
 
 Check on Jaeger: http://localhost:16686/search
 
