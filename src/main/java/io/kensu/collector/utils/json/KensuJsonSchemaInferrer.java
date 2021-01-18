@@ -103,7 +103,8 @@ public class KensuJsonSchemaInferrer {
         flattenJson.entrySet().stream().forEach(e -> {
             String property = e.getKey();
             Object value = e.getValue();
-            String propPrep = property.replaceAll("\\[\\d+\\]", "[]");
+            String propPrep = property.replaceAll("\\[\\d+\\]", "[]")
+                                        .replaceFirst("^\\[\\]\\.", ""); //FIXME skipping []. due to bug in UI (apparently)
             String type = extractFieldType(value);
             if (type != null) {
                 schemaPrep.put(propPrep, type);
@@ -117,7 +118,10 @@ public class KensuJsonSchemaInferrer {
             String keyPrep = scp.getKey();
             String typePrep = scp.getValue();
             List<Object> values = flattenJson.entrySet().stream()
-                                        .filter(e -> e.getKey().replaceAll("\\[\\d+\\]", "[]").equals(keyPrep))
+                                        .filter(e -> e.getKey().replaceAll("\\[\\d+\\]", "[]")
+                                                                .replaceFirst("^\\[\\]\\.", "")
+                                                                .equals(keyPrep)
+                                        )
                                         .map(e -> e.getValue())
                                         .collect(Collectors.toList());
             Map<String, Double> stats = new HashMap<>();

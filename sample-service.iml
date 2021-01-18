@@ -22,7 +22,7 @@
         <setting name="validation-enabled" value="true" />
         <setting name="provider-name" value="Hibernate" />
         <datasource-mapping>
-          <factory-entry name="classicmodels" />
+          <factory-entry name="classicmodels" value="f86e4e2b-e952-4325-8af6-cc2801d6ae90" />
           <factory-entry name="tutorialapp" />
         </datasource-mapping>
         <naming-strategy-map />
@@ -224,7 +224,7 @@
     <orderEntry type="library" name="Maven: org.jvnet.staxex:stax-ex:1.8" level="project" />
     <orderEntry type="library" name="Maven: com.sun.xml.fastinfoset:FastInfoset:1.2.15" level="project" />
     <orderEntry type="library" name="Maven: org.hibernate:hibernate-entitymanager:5.4.26.Final" level="project" />
-    <orderEntry type="module" module-name="opentracing-jdbc" />
+    <orderEntry type="library" name="Maven: io.kensio.third.contrib:opentracing-jdbc:0.1.0-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: io.opentracing.contrib:common:0.1.4" level="project" />
     <orderEntry type="library" name="Maven: com.github.jsqlparser:jsqlparser:3.1" level="project" />
     <orderEntry type="library" name="Maven: ru.yandex.clickhouse:clickhouse-jdbc:0.2.4" level="project" />

@@ -16,6 +16,9 @@
         <version.arquillian>1.6.0.Final</version.arquillian>
         <version.wildfly>20.0.1.Final</version.wildfly>
         <path.to.jboss.deployments.dir>${user.home}/opt/wildfly/standalone/deployments</path.to.jboss.deployments.dir>
+        <kensu.api.url></kensu.api.url>
+        <kensu.api.token></kensu.api.token>
+        <kensu.demodb.password>`</kensu.demodb.password>
     </properties>
 
     <repositories>

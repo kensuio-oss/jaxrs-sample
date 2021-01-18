@@ -122,11 +122,9 @@ public class TracerReporter implements Reporter {
                 }
                 // TODO support content body (like query JSON for example)
                 DamDataCatalogEntry endpointQueryCatalogEntry = batchBuilder.addCatalogEntry("HTTP Request",
-                        endpointQueryFields, httpPathPattern, "http", defaultLocationRef, HttpDatasourceNameFormatter.INST);
+                        endpointQueryFields, httpPathPattern, httpMethod+":"+"http", defaultLocationRef, HttpDatasourceNameFormatter.INST);
                 DamDataCatalogEntry endpointQueryCatalogEntryWithResultSchema = null;
 
-                String transformedHttpUrl = "http:"+httpMethod+":"+httpPathPattern;
-                logger.warning("transformedHttpUrl: "+ transformedHttpUrl);
                 if ((httpStatus >= 200) && (httpStatus < 300)) {
                     Map<String, DamDataCatalogEntry> queriedTableCatalogEntries = new HashMap<>();
                     Set<SpanData> children = spanChildrenCache.getIfPresent(span.spanId);
@@ -150,6 +148,7 @@ public class TracerReporter implements Reporter {
                             */
                             String dbInstance = getTagOrDefault(Tags.DB_INSTANCE, spanChild, "");
                             String dbType = getTagOrDefault(Tags.DB_TYPE, spanChild, "");
+                            String dbConnection = getTagOrDefault("peer.address", spanChild, "");
                             String dbStatement = getTagOrDefault(Tags.DB_STATEMENT, spanChild, "");
                             // SQL reads
                             DamJdbcQueryParser damJdbcQueryParser = null;
@@ -159,9 +158,10 @@ public class TracerReporter implements Reporter {
                                 fieldsByTable = damJdbcQueryParser.guessReferencedInputTableSchemas();
                                 for (Entry<String, HashSet<FieldDef>> sfd : fieldsByTable.schema.entrySet()) {
                                     String schemaAndTableName = sfd.getKey();
+                                    String dsNameComposed = String.format("%s/%s", dbConnection, schemaAndTableName);
                                     HashSet<FieldDef> fields = sfd.getValue();
                                     DamDataCatalogEntry dataCatalogEntry = batchBuilder.addCatalogEntry("SQL Query",
-                                            fields, schemaAndTableName, dbType, defaultLocationRef, JdbcDatasourceNameFormatter.INST);
+                                            fields, dsNameComposed, dbType, defaultLocationRef, JdbcDatasourceNameFormatter.INST);
                                     queriedTableCatalogEntries.put(schemaAndTableName, dataCatalogEntry);
                                 }
                             } catch (JSQLParserException e) {

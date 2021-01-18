@@ -4,6 +4,6 @@ public class JdbcDatasourceNameFormatter extends DatasourceNameFormatter {
     public static JdbcDatasourceNameFormatter INST = new JdbcDatasourceNameFormatter();
 
     public String formatLocation(String tableName, String datasourceFormat){
-        return String.format("jdbc-table: %s :: %s", datasourceFormat, tableName);
+        return String.format("%s://%s", datasourceFormat, tableName);
     }
 }
