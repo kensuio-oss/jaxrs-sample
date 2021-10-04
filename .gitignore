@@ -1,3 +1,4 @@
 target/
 .idea/
 jaxrs-sample.iml
+sample-service.iml
