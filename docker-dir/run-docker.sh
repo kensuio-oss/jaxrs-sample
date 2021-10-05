@@ -12,5 +12,5 @@ fi
 echo "warning this will create two files taking 10GB!" 
 
 docker compose -f infra.yml stop
-docker compose -f infra.yml rm --force
+# docker compose -f infra.yml rm --force
 docker compose -f infra.yml up

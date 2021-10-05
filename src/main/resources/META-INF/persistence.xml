@@ -31,13 +31,14 @@
     </persistence-unit>-->
 
     <!-- mysql-->
+    <!-- fixme: configurable host.docker.internal vs localhost -->
     <persistence-unit name="tutorialapp" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
         <class>io.kensu.example.jboss.model.entities.Visit</class>
         <class>io.kensu.example.jboss.model.entities.Hit</class>
         <properties>
             <property name="javax.persistence.jdbc.driver" value="io.opentracing.contrib.jdbc.TracingDriver" />
-            <property name="javax.persistence.jdbc.url" value="jdbc:tracing:clickhouse://localhost:8123/tutorial" />
+            <property name="javax.persistence.jdbc.url" value="jdbc:tracing:clickhouse://host.docker.internal:8123/tutorial" />
             <property name="javax.persistence.jdbc.user" value="andy" />
             <property name="javax.persistence.jdbc.password" value="andy" />
             <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
@@ -50,7 +51,7 @@
         <class>io.kensu.example.jboss.model.entities.OrderDetails</class>
         <properties>
             <property name="javax.persistence.jdbc.driver" value="io.opentracing.contrib.jdbc.TracingDriver" />
-            <property name="javax.persistence.jdbc.url" value="jdbc:tracing:mysql://localhost:3306/classicmodels" />
+            <property name="javax.persistence.jdbc.url" value="jdbc:tracing:mysql://host.docker.internal:3306/classicmodels" />
             <property name="javax.persistence.jdbc.user" value="andy" />
             <property name="javax.persistence.jdbc.password" value="andy" />
             <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
