@@ -1,6 +1,11 @@
 package io.kensu.collector.config;
 
+import io.jaegertracing.internal.JaegerProxy;
+import io.jaegertracing.internal.JaegerTracer;
+import io.jaegertracing.internal.reporters.RemoteReporter;
+import io.jaegertracing.zipkin.ZipkinSender;
 import io.opentracing.Tracer;
+import io.opentracing.contrib.reporter.Reporter;
 import io.opentracing.contrib.tracerresolver.TracerFactory;
 import io.opentracing.noop.NoopTracerFactory;
 
@@ -15,6 +20,10 @@ import javax.enterprise.inject.Produces;
 
 import io.jaegertracing.Configuration;
 import io.opentracing.contrib.reporter.TracerR;
+
+import static io.jaegertracing.Configuration.JAEGER_AGENT_HOST;
+//import zipkin2.reporter.AsyncReporter;
+//import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 @Priority(0)
 public class KensuTracerFactory implements TracerFactory {
@@ -31,12 +40,27 @@ public class KensuTracerFactory implements TracerFactory {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+        // Instantiate Kensu Tracer (probably not even needed)
+        // io.kensu.collector.TracerReporter
+        Reporter kensuReporter = new io.kensu.collector.TracerReporter();
 
         Tracer backendTracer = null;
         try {
             // TODO Deal with existing reporter via Widlfy default-tracer for example
             System.setProperty("JAEGER_SERVICE_NAME", properties.getProperty("app.artifactId")); // properties are used first
-            backendTracer = Configuration.fromEnv().getTracer();
+            // to use  Jaeger to report to Zipkin Server
+            String serviceName = System.getProperty("JAEGER_SERVICE_NAME");
+            String zipkinServerHost = System.getProperty(JAEGER_AGENT_HOST, System.getenv(JAEGER_AGENT_HOST));
+            RemoteReporter zipkinReporter = new RemoteReporter.Builder()
+                    .withSender(ZipkinSender.create("http://" + zipkinServerHost + ":9411/api/v1/spans"))
+                    .build();
+
+            // doesn't work well like that - doesn't pick up the settings (like sampling) from env it seams
+            //  backendTracer = new JaegerTracer.Builder(serviceName).withReporter(zipkinReporter).build();
+            backendTracer = Configuration.fromEnv().getTracerBuilder().withReporter(zipkinReporter).build();
+            // or we can also use original Jaeger tracer to report to Jaeger server
+            // backendTracer = Configuration.fromEnv().getTracer();
+
         } catch (Exception e) {
             logger.warning("Can't create Jaeger as var env are not set, and we don't support default-tracer from Wildly yet");
             backendTracer = NoopTracerFactory.create();
@@ -53,16 +77,17 @@ public class KensuTracerFactory implements TracerFactory {
         System.setProperty("DAM_PROCESS_NAME", properties.getProperty("app.artifactId"));
         System.setProperty("DAM_CODEBASE_LOCATION", properties.getProperty("git.remote.origin.url"));
         System.setProperty("DAM_CODE_VERSION", properties.getProperty("app.version")+"_"+properties.getProperty("git.commit.id.describe-short"));
-        // Instantiate Kensu Tracer
-        io.kensu.collector.TracerReporter reporter = new io.kensu.collector.TracerReporter();
+
 
         // Configure JDBC Open Tracer
         io.opentracing.contrib.jdbc.TracingDriver.setInterceptorMode(true);
         io.opentracing.contrib.jdbc.TracingDriver.setTraceEnabled(true);
         io.opentracing.contrib.jdbc.TracingDriver.setInterceptorProperty(false);
 
-        Tracer javaTracer = new TracerR(backendTracer, reporter, backendTracer.scopeManager());        
+        // FIXME!!
+        Tracer javaTracer = new TracerR(backendTracer, kensuReporter, backendTracer.scopeManager());
         return javaTracer;
+        //return backendTracer;
     }
     private Properties getProperties() throws IOException {
 
