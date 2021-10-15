@@ -165,7 +165,7 @@
         <dependency>
             <groupId>io.jaegertracing</groupId>
             <artifactId>jaeger-zipkin</artifactId>
-            <version>${jaeger.version}</version>
+            <version>1.6.0-vidma</version> <!-- include patch for gson tags, orig: ${jaeger.version} -->
         </dependency>
         <!-- FIXME: we could also use original zipkin2 reporter adapted for jaeger
         see https://github.com/jaegertracing/jaeger-client-java/tree/master/jaeger-zipkin#zipkin-2-reporters

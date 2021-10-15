@@ -1,6 +1,6 @@
 JAEGER UI [http://localhost:16686/search](http://localhost:16686/search)
 
-ZIPKIN UI (not used in source) http://127.0.0.1:9411/zipkin/
+ZIPKIN UI (not used in source) [http://127.0.0.1:9411/zipkin/](http://127.0.0.1:9411/zipkin/)
 
 
 # where the app runs

@@ -2,9 +2,11 @@ package io.kensu.collector.config;
 
 import io.jaegertracing.internal.JaegerProxy;
 import io.jaegertracing.internal.JaegerTracer;
+import io.jaegertracing.internal.reporters.LoggingReporter;
 import io.jaegertracing.internal.reporters.RemoteReporter;
 import io.jaegertracing.zipkin.ZipkinSender;
 import io.opentracing.Tracer;
+//import io.opentracing.contrib.reporter.CompositeReporter;
 import io.opentracing.contrib.reporter.Reporter;
 import io.opentracing.contrib.tracerresolver.TracerFactory;
 import io.opentracing.noop.NoopTracerFactory;
@@ -20,6 +22,8 @@ import javax.enterprise.inject.Produces;
 
 import io.jaegertracing.Configuration;
 import io.opentracing.contrib.reporter.TracerR;
+import zipkin2.codec.Encoding;
+import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 import static io.jaegertracing.Configuration.JAEGER_AGENT_HOST;
 //import zipkin2.reporter.AsyncReporter;
@@ -45,16 +49,17 @@ public class KensuTracerFactory implements TracerFactory {
         Reporter kensuReporter = new io.kensu.collector.TracerReporter();
 
         Tracer backendTracer = null;
+        // FIXME: try native zipkin tracer!
         try {
             // TODO Deal with existing reporter via Widlfy default-tracer for example
             System.setProperty("JAEGER_SERVICE_NAME", properties.getProperty("app.artifactId")); // properties are used first
             // to use  Jaeger to report to Zipkin Server
-            String serviceName = System.getProperty("JAEGER_SERVICE_NAME");
-            String zipkinServerHost = System.getProperty(JAEGER_AGENT_HOST, System.getenv(JAEGER_AGENT_HOST));
-            RemoteReporter zipkinReporter = new RemoteReporter.Builder()
-                    .withSender(ZipkinSender.create("http://" + zipkinServerHost + ":9411/api/v1/spans"))
-                    .build();
-
+            String zipkinEndpointCfgKey = "ZIPKIN_ENDPOINT";
+            String kensuZipkinEndpoint = System.getProperty(zipkinEndpointCfgKey, System.getenv(zipkinEndpointCfgKey));
+            io.jaegertracing.spi.Reporter zipkinReporter = new io.jaegertracing.internal.reporters.CompositeReporter(
+                    buildZipkinReporter(kensuZipkinEndpoint),
+                    buildZipkinReporter("http://host.docker.internal:9411/api/v1/spans") // DEBUGGING_ZIPKIN_ENDPOINT
+            );
             // doesn't work well like that - doesn't pick up the settings (like sampling) from env it seams
             //  backendTracer = new JaegerTracer.Builder(serviceName).withReporter(zipkinReporter).build();
             backendTracer = Configuration.fromEnv().getTracerBuilder().withReporter(zipkinReporter).build();
@@ -83,12 +88,20 @@ public class KensuTracerFactory implements TracerFactory {
         io.opentracing.contrib.jdbc.TracingDriver.setInterceptorMode(true);
         io.opentracing.contrib.jdbc.TracingDriver.setTraceEnabled(true);
         io.opentracing.contrib.jdbc.TracingDriver.setInterceptorProperty(false);
-
-        // FIXME!!
-        Tracer javaTracer = new TracerR(backendTracer, kensuReporter, backendTracer.scopeManager());
-        return javaTracer;
-        //return backendTracer;
+        return backendTracer;
+        // it seems TracerR is not needed anymore (for now at least, as zipkin reporter has a composite one)
+        //Tracer javaTracer = new TracerR(backendTracer, kensuReporter, backendTracer.scopeManager());
     }
+
+    private RemoteReporter buildZipkinReporter(String zipkinEndpoint) {
+        // P.S. there's no non-thrift span converter. originally it uses String.valueOf for tag values...!
+        //ZipkinSender.create(URLConnectionSender.newBuilder().encoding(Encoding.JSON).endpoint(zipkinEndpoint).build());
+        return new RemoteReporter.Builder()
+                .withSender(ZipkinSender.create(zipkinEndpoint))
+                .withFlushInterval(1) // FIXME
+                .build();
+    }
+
     private Properties getProperties() throws IOException {
 
         Properties properties = new Properties();
