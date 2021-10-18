@@ -7,10 +7,12 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: andy
-      #MYSQL_USER: andy
-      #MYSQL_PASSWORD: andy
+      # P.S. used created in init script...
+      MYSQL_USER: andy
+      MYSQL_PASSWORD: andy
+      MYSQL_DATABASE: classicmodels
     volumes:
-      - "./mysql-init-users.sql:/docker-entrypoint-initdb.d/0.sql"
+      # - "./mysql-init-users.sql:/docker-entrypoint-initdb.d/0.sql"
       - "./init-mysql-data.sql:/docker-entrypoint-initdb.d/1.sql"
 
     ports:
@@ -30,8 +32,11 @@ services:
       JAEGER_SAMPLER_TYPE: const
       JAEGER_SAMPLER_PARAM: 1
       # TLSv1,TLSv1.1,TLSv1.2
-      # -Djdk.tls.client.protocols=TLSv1.2,TLSv1.3
-      JAVA_OPTS: -Dhttps.protocols=TLSv1.2,TLSv1.3
+      # fail
+      #JAVA_OPTS: -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2,TLSv1.3 -Djdk.tls.client.protocols=TLSv1,TLSv1.1,TLSv1.2,TLSv1.3
+      #JAVA_OPTS: -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2 -Djdk.tls.client.protocols=TLSv1,TLSv1.1,TLSv1.2
+      JAVA_OPTS: -Dhttps.protocols=TLSv1.2,TLSv1.3 -Djdk.tls.client.protocols=TLSv1.2,TLSv1.3
+      #JAVA_OPTS: -Dhttps.protocols=TLSv1.2,TLSv1.3
       # if using Jaeger directly, skip UDP (needed esp. for larger payloads)
       # JAEGER_ENDPOINT: http://host.docker.internal:14268/api/traces
       #zipkin

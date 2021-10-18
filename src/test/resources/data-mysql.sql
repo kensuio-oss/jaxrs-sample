@@ -25,6 +25,9 @@ Version 2.0
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 CREATE DATABASE /*!32312 IF NOT EXISTS*/`classicmodels` /*!40100 DEFAULT CHARACTER SET latin1 */;
 
+-- GRANT ALL PRIVILEGES ON *.* TO 'andy'@'%' WITH GRANT OPTION;
+-- FLUSH PRIVILEGES;
+
 USE `classicmodels`;
 
 /*Table structure for table `customers` */
