@@ -1,13 +1,8 @@
 package io.kensu.collector.config;
 
-import io.jaegertracing.internal.JaegerProxy;
-import io.jaegertracing.internal.JaegerTracer;
-import io.jaegertracing.internal.reporters.LoggingReporter;
 import io.jaegertracing.internal.reporters.RemoteReporter;
 import io.jaegertracing.zipkin.ZipkinSender;
 import io.opentracing.Tracer;
-//import io.opentracing.contrib.reporter.CompositeReporter;
-import io.opentracing.contrib.reporter.Reporter;
 import io.opentracing.contrib.tracerresolver.TracerFactory;
 import io.opentracing.noop.NoopTracerFactory;
 
@@ -21,13 +16,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
 import io.jaegertracing.Configuration;
-import io.opentracing.contrib.reporter.TracerR;
-import zipkin2.codec.Encoding;
-import zipkin2.reporter.urlconnection.URLConnectionSender;
 
-import static io.jaegertracing.Configuration.JAEGER_AGENT_HOST;
-//import zipkin2.reporter.AsyncReporter;
-//import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 @Priority(0)
 public class KensuTracerFactory implements TracerFactory {
@@ -44,12 +33,8 @@ public class KensuTracerFactory implements TracerFactory {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
-        // Instantiate Kensu Tracer (probably not even needed)
-        // io.kensu.collector.TracerReporter
-        Reporter kensuReporter = new io.kensu.collector.TracerReporter();
 
-        Tracer backendTracer = null;
-        // FIXME: try native zipkin tracer!
+        Tracer backendTracer;
         try {
             // TODO Deal with existing reporter via Widlfy default-tracer for example
             System.setProperty("JAEGER_SERVICE_NAME", properties.getProperty("app.artifactId")); // properties are used first
@@ -71,9 +56,7 @@ public class KensuTracerFactory implements TracerFactory {
             backendTracer = NoopTracerFactory.create();
         }
 
-        // Configure Kensu Tracer
-        System.setProperty("DAM_OFFLINE", properties.getProperty("kensu.collector.api.offline.switch"));
-        System.setProperty("DAM_OFFLINE_FILE_NAME", properties.getProperty("kensu.collector.api.offline.file"));
+        // FIXME: Need to send at least some of these values to Kensu ingestion
         System.setProperty("DAM_INGESTION_URL", properties.getProperty("kensu.collector.api.url"));
         System.setProperty("DAM_AUTH_TOKEN", properties.getProperty("kensu.collector.api.token"));
         System.setProperty("DAM_USER_NAME", properties.getProperty("kensu.collector.run.user", System.getenv("USER")));

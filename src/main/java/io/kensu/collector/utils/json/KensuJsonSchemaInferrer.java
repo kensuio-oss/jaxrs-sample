@@ -133,7 +133,7 @@ public class KensuJsonSchemaInferrer {
         Set<FieldDef> fields = schemaPrep.entrySet().stream()
                                         .map(e -> new FieldDef().name(e.getKey()).fieldType(e.getValue()).nullable(false)) //fixme nullable
                                         .collect(Collectors.toSet());
-        return Map.entry(fields, allStats);
+        return new AbstractMap.SimpleEntry(fields, allStats);
     }
 
 }
