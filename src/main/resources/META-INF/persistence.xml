@@ -62,7 +62,7 @@
         <class>io.kensu.example.jboss.model.entities.Customer</class>
         <properties>
             <property name="javax.persistence.jdbc.driver" value="io.opentracing.contrib.jdbc.TracingDriver" />
-            <property name="javax.persistence.jdbc.url" value="jdbc:tracing:mysql://xmysql-kensu-demo.usnek.com:3306/demodb?enabledTLSProtocols=TLSv1.2" />
+            <property name="javax.persistence.jdbc.url" value="jdbc:tracing:mysql://${kensu.demodb.uri}?enabledTLSProtocols=TLSv1.2" />
             <property name="javax.persistence.jdbc.user" value="pennyparker" />
             <property name="javax.persistence.jdbc.password" value="${kensu.demodb.password}" />
             <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>

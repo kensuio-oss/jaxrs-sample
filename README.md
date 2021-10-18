@@ -240,6 +240,7 @@ to use the profile like `mvn -P kensu-demo-102`
             <activeByDefault/>
             <properties>
                 <kensu.demodb.password>${PUT_PASSWORD_HERE}</kensu.demodb.password>
+                <kensu.demodb.uri>some-domain.com:3306/demodb</kensu.demodb.uri>
             </properties>
         </profile>
         <profile>
