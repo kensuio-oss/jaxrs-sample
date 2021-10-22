@@ -19,7 +19,7 @@ services:
       - 3306:3306
 
   wildfly:
-    image: vidma/wildfly-ksu
+    image: vidmasze/ksu-wildfly:ksu-wildfly-setup
     container_name: ksu-wildfly
     restart: unless-stopped
     environment:
