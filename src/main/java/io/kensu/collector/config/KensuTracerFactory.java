@@ -8,6 +8,10 @@ import io.opentracing.noop.NoopTracerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -16,6 +20,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
 import io.jaegertracing.Configuration;
+import zipkin2.codec.Encoding;
+import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 
 @Priority(0)
@@ -34,6 +40,18 @@ public class KensuTracerFactory implements TracerFactory {
             throw new RuntimeException(e);
         }
 
+        // FIXME: Need to send at least some of these values to Kensu ingestion
+        // FIXME: refactor...
+        System.setProperty("DAM_INGESTION_URL", properties.getProperty("kensu.collector.api.url"));
+        System.setProperty("DAM_AUTH_TOKEN", properties.getProperty("kensu.collector.api.token"));
+        System.setProperty("DAM_USER_NAME", properties.getProperty("kensu.collector.run.user", System.getenv("USER")));
+        System.setProperty("DAM_RUN_ENVIRONMENT", properties.getProperty("kensu.collector.run.env"));
+        System.setProperty("DAM_PROJECTS", properties.getProperty("kensu.collector.run.projects",""));
+        System.setProperty("DAM_PROCESS_NAME", properties.getProperty("app.artifactId"));
+        System.setProperty("DAM_CODEBASE_LOCATION", properties.getProperty("git.remote.origin.url"));
+        System.setProperty("DAM_CODE_VERSION", properties.getProperty("app.version")+"_"+properties.getProperty("git.commit.id.describe-short"));
+
+
         Tracer backendTracer;
         try {
             // TODO Deal with existing reporter via Widlfy default-tracer for example
@@ -42,8 +60,12 @@ public class KensuTracerFactory implements TracerFactory {
             String zipkinEndpointCfgKey = "ZIPKIN_ENDPOINT";
             String kensuZipkinEndpoint = System.getProperty(zipkinEndpointCfgKey, System.getenv(zipkinEndpointCfgKey));
             io.jaegertracing.spi.Reporter zipkinReporter = new io.jaegertracing.internal.reporters.CompositeReporter(
-                    buildZipkinReporter(kensuZipkinEndpoint),
-                    buildZipkinReporter("http://host.docker.internal:9411/api/v1/spans") // DEBUGGING_ZIPKIN_ENDPOINT
+                    buildZipkinReporter(
+                            kensuZipkinEndpoint,
+                            new DamProcessEnvironment().damIngestionToken()),
+                    buildZipkinReporter(
+                            "http://host.docker.internal:9411/api/v1/spans",
+                            null) // DEBUGGING_ZIPKIN_ENDPOINT
             );
             // doesn't work well like that - doesn't pick up the settings (like sampling) from env it seams
             //  backendTracer = new JaegerTracer.Builder(serviceName).withReporter(zipkinReporter).build();
@@ -56,17 +78,6 @@ public class KensuTracerFactory implements TracerFactory {
             backendTracer = NoopTracerFactory.create();
         }
 
-        // FIXME: Need to send at least some of these values to Kensu ingestion
-        System.setProperty("DAM_INGESTION_URL", properties.getProperty("kensu.collector.api.url"));
-        System.setProperty("DAM_AUTH_TOKEN", properties.getProperty("kensu.collector.api.token"));
-        System.setProperty("DAM_USER_NAME", properties.getProperty("kensu.collector.run.user", System.getenv("USER")));
-        System.setProperty("DAM_RUN_ENVIRONMENT", properties.getProperty("kensu.collector.run.env"));
-        System.setProperty("DAM_PROJECTS", properties.getProperty("kensu.collector.run.projects",""));
-        System.setProperty("DAM_PROCESS_NAME", properties.getProperty("app.artifactId"));
-        System.setProperty("DAM_CODEBASE_LOCATION", properties.getProperty("git.remote.origin.url"));
-        System.setProperty("DAM_CODE_VERSION", properties.getProperty("app.version")+"_"+properties.getProperty("git.commit.id.describe-short"));
-
-
         // Configure JDBC Open Tracer
         io.opentracing.contrib.jdbc.TracingDriver.setInterceptorMode(true);
         io.opentracing.contrib.jdbc.TracingDriver.setTraceEnabled(true);
@@ -76,11 +87,27 @@ public class KensuTracerFactory implements TracerFactory {
         //Tracer javaTracer = new TracerR(backendTracer, kensuReporter, backendTracer.scopeManager());
     }
 
-    private RemoteReporter buildZipkinReporter(String zipkinEndpoint) {
+    private RemoteReporter buildZipkinReporter(String zipkinEndpoint, String kensuAuthToken) throws MalformedURLException {
+        // Add X-Auth-Token header
+        // URLConnectionSender is final so cannot add a header outside of URLStreamHandler
+        URL serverUrl;
+        if (kensuAuthToken == null){
+            serverUrl = new URL(zipkinEndpoint);
+        } else {
+            serverUrl = new URL(null, zipkinEndpoint, new URLStreamHandler() {
+                @Override
+                protected URLConnection openConnection(URL u) throws IOException {
+                    URLConnection conn = new URL(zipkinEndpoint).openConnection();
+                    conn.addRequestProperty("X-Auth-Token", kensuAuthToken);
+                    return conn;
+                }
+            });
+        }
         // P.S. there's no non-thrift span converter. originally it uses String.valueOf for tag values...!
-        //ZipkinSender.create(URLConnectionSender.newBuilder().encoding(Encoding.JSON).endpoint(zipkinEndpoint).build());
         return new RemoteReporter.Builder()
-                .withSender(ZipkinSender.create(zipkinEndpoint))
+                .withSender(ZipkinSender.create(
+                        URLConnectionSender.newBuilder().encoding(Encoding.THRIFT).endpoint(serverUrl).build()
+                ))
                 .withFlushInterval(1) // FIXME
                 .build();
     }

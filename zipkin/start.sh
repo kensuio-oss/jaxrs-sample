@@ -5,7 +5,5 @@ if [ ! -f ./zipkin.jar ]; then
 fi
 
 
-export STORAGE_TYPE=cassandra3
-#export CASSANDRA_USERNAME=""
-#export CASSANDRA_PASSWORD=""
+# export STORAGE_TYPE=cassandra3
 java -jar zipkin.jar
