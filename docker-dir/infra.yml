@@ -26,12 +26,12 @@ services:
       # JAEGER_AGENT_HOST defines hostname for reporting spans over UDP/Thrift. To avoid packet loss, the agent is expected to run on the same machine as the application. This var is useful when there are multiple networking namespaces on the host.
       JAEGER_AGENT_HOST: host.docker.internal
       JAEGER_AGENT_PORT: 6831
-      JAEGER_REPORTER_LOG_SPANS: true
+      JAEGER_REPORTER_LOG_SPANS: "true"
       # maybe setting system prop do not work?
       JAEGER_SERVICE_NAME: jaxrs-sample
       JAEGER_SAMPLER_TYPE: const
       JAEGER_SAMPLER_PARAM: 1
-      JAVA_OPTS: -Dhttps.protocols=TLSv1.2,TLSv1.3 -Djdk.tls.client.protocols=TLSv1.2,TLSv1.3
+      JAVA_OPTS: "-Dhttps.protocols=TLSv1.2,TLSv1.3 -Djdk.tls.client.protocols=TLSv1.2,TLSv1.3"
       # if using Jaeger directly, skip UDP (needed esp. for larger payloads)
       # JAEGER_ENDPOINT: http://host.docker.internal:14268/api/traces
       # to zipkin
