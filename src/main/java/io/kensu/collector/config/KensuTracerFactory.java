@@ -1,6 +1,8 @@
 package io.kensu.collector.config;
 
+import io.jaegertracing.internal.JaegerSpan;
 import io.jaegertracing.internal.reporters.RemoteReporter;
+import io.jaegertracing.spi.Reporter;
 import io.jaegertracing.zipkin.ZipkinSender;
 import io.opentracing.Tracer;
 import io.opentracing.contrib.tracerresolver.TracerFactory;
@@ -12,6 +14,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -22,6 +26,30 @@ import javax.enterprise.inject.Produces;
 import io.jaegertracing.Configuration;
 import zipkin2.codec.Encoding;
 import zipkin2.reporter.urlconnection.URLConnectionSender;
+
+class KensuJaegerSpanAnnotatingReporter implements Reporter {
+
+    Reporter delegate;
+    Map<String, String> kensuAnnotations;
+
+    public KensuJaegerSpanAnnotatingReporter(Map<String, String> kensuAnnotations, Reporter delegate){
+        this.delegate = delegate;
+        this.kensuAnnotations = kensuAnnotations;
+    }
+
+    @Override
+    public void report(JaegerSpan span) {
+        for (Map.Entry<String, String> ann: this.kensuAnnotations.entrySet()){
+            span.setTag(ann.getKey(), ann.getValue());
+        }
+        delegate.report(span);
+    }
+
+    @Override
+    public void close() {
+        delegate.close();
+    }
+}
 
 
 @Priority(0)
@@ -51,7 +79,8 @@ public class KensuTracerFactory implements TracerFactory {
         System.setProperty("DAM_CODEBASE_LOCATION", properties.getProperty("git.remote.origin.url"));
         System.setProperty("DAM_CODE_VERSION", properties.getProperty("app.version")+"_"+properties.getProperty("git.commit.id.describe-short"));
 
-
+        DamProcessEnvironment damEnv = new DamProcessEnvironment();
+        Map<String, String> kensuAnnotations = damEnv.getKensuAnnotations();
         Tracer backendTracer;
         try {
             // TODO Deal with existing reporter via Widlfy default-tracer for example
@@ -62,10 +91,12 @@ public class KensuTracerFactory implements TracerFactory {
             io.jaegertracing.spi.Reporter zipkinReporter = new io.jaegertracing.internal.reporters.CompositeReporter(
                     buildZipkinReporter(
                             kensuZipkinEndpoint,
-                            new DamProcessEnvironment().damIngestionToken()),
+                            damEnv.damIngestionToken(),
+                            kensuAnnotations),
                     buildZipkinReporter(
                             "http://host.docker.internal:9411/api/v1/spans",
-                            null) // DEBUGGING_ZIPKIN_ENDPOINT
+                            null,
+                            kensuAnnotations) // DEBUGGING_ZIPKIN_ENDPOINT
             );
             // doesn't work well like that - doesn't pick up the settings (like sampling) from env it seams
             //  backendTracer = new JaegerTracer.Builder(serviceName).withReporter(zipkinReporter).build();
@@ -87,7 +118,9 @@ public class KensuTracerFactory implements TracerFactory {
         //Tracer javaTracer = new TracerR(backendTracer, kensuReporter, backendTracer.scopeManager());
     }
 
-    private RemoteReporter buildZipkinReporter(String zipkinEndpoint, String kensuAuthToken) throws MalformedURLException {
+    private KensuJaegerSpanAnnotatingReporter buildZipkinReporter(String zipkinEndpoint,
+                                               String kensuAuthToken,
+                                               Map<String, String> kensuAnnotations) throws MalformedURLException {
         // Add X-Auth-Token header
         // URLConnectionSender is final so cannot add a header outside of URLStreamHandler
         URL serverUrl;
@@ -104,12 +137,13 @@ public class KensuTracerFactory implements TracerFactory {
             });
         }
         // P.S. there's no non-thrift span converter. originally it uses String.valueOf for tag values...!
-        return new RemoteReporter.Builder()
+        RemoteReporter reporter =  new RemoteReporter.Builder()
                 .withSender(ZipkinSender.create(
                         URLConnectionSender.newBuilder().encoding(Encoding.THRIFT).endpoint(serverUrl).build()
                 ))
                 .withFlushInterval(1) // FIXME
                 .build();
+        return new KensuJaegerSpanAnnotatingReporter(kensuAnnotations, reporter);
     }
 
     private Properties getProperties() throws IOException {
