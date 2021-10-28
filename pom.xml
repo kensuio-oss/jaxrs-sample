@@ -167,28 +167,6 @@
             <artifactId>jaeger-zipkin</artifactId>
             <version>1.6.0-vidma</version> <!-- include patch for gson tags, orig: ${jaeger.version} -->
         </dependency>
-        <!-- FIXME: we could also use original zipkin2 reporter adapted for jaeger
-        see https://github.com/jaegertracing/jaeger-client-java/tree/master/jaeger-zipkin#zipkin-2-reporters
-        <dependency>
-            <groupId>io.zipkin.reporter2</groupId>
-            <artifactId>zipkin-sender-urlconnection</artifactId>
-            <version>${jaeger.version}</version>
-        </dependency>
-        -->
-
-        <!-- https://mvnrepository.com/artifact/io.zipkin.zipkin2/zipkin -->
-<!--        <dependency>-->
-<!--            <groupId>io.zipkin.zipkin2</groupId>-->
-<!--            <artifactId>zipkin</artifactId>-->
-<!--            <version>2.23.4</version>-->
-<!--        </dependency>-->
-        <!-- FIXME: probably there are better/more efficient implementations than this (e.g. zipkin-sender-okhttp3),
-         but this is minimum dependency => minimum conflict,
-         e.g. see https://repo1.maven.org/maven2/io/zipkin/reporter2/ -->
-<!--        <dependency>-->
-<!--            <groupId>io.zipkin.reporter2</groupId>-->
-<!--            <artifactId>zipkin-sender-urlconnection</artifactId>-->
-<!--        </dependency>-->
 
         <!-- Import MicroProfile APIs -->
 
@@ -259,26 +237,11 @@
         </dependency>
 
         <dependency>
-            <groupId>io.kensu.dim.client</groupId>
-            <artifactId>java-resteasy-jackson</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>com.github.wnameless.json</groupId>
             <artifactId>json-flattener</artifactId>
             <version>0.12.0</version>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>com.google.zetasql</groupId>-->
-<!--            <artifactId>zetasql-client</artifactId>-->
-<!--            <version>2020.10.1</version>-->
-<!--        </dependency>-->
-<!--        <dependency>-->
-<!--            <groupId>com.google.zetasql</groupId>-->
-<!--            <artifactId>zetasql-jni-channel</artifactId>-->
-<!--            <version>2020.10.1</version>-->
-<!--        </dependency>-->
     </dependencies>
 
     <dependencyManagement>
