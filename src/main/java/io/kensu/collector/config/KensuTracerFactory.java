@@ -88,6 +88,7 @@ public class KensuTracerFactory implements TracerFactory {
             // to use  Jaeger to report to Zipkin Server
             String zipkinEndpointCfgKey = "ZIPKIN_ENDPOINT";
             String kensuZipkinEndpoint = System.getProperty(zipkinEndpointCfgKey, System.getenv(zipkinEndpointCfgKey));
+            // FIXME: check, maybe jaeger is not needed at all anymore, and we could use Zipkin Tracer directly?
             io.jaegertracing.spi.Reporter zipkinReporter = new io.jaegertracing.internal.reporters.CompositeReporter(
                     buildZipkinReporter(
                             kensuZipkinEndpoint,
@@ -114,7 +115,7 @@ public class KensuTracerFactory implements TracerFactory {
         io.opentracing.contrib.jdbc.TracingDriver.setTraceEnabled(true);
         io.opentracing.contrib.jdbc.TracingDriver.setInterceptorProperty(false);
         return backendTracer;
-        // it seems TracerR is not needed anymore (for now at least, as zipkin reporter has a composite one)
+        // it seems TracerR is not needed anymore (for now at least, as zipkin/jaeger reporter has a composite one)
         //Tracer javaTracer = new TracerR(backendTracer, kensuReporter, backendTracer.scopeManager());
     }
 
