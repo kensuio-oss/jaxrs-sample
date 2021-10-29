@@ -195,11 +195,12 @@
             <version>0.1.8</version>
         </dependency>
 
-        <dependency>
-            <groupId>io.opentracing.contrib</groupId>
-            <artifactId>span-reporter</artifactId>
-            <version>0.3.1</version>
-        </dependency>
+        <!-- this is optional now -->
+        <!--        <dependency>-->
+        <!--            <groupId>io.opentracing.contrib</groupId>-->
+        <!--            <artifactId>span-reporter</artifactId>-->
+        <!--            <version>0.3.1</version>-->
+        <!--        </dependency>-->
 
         <dependency>
             <groupId>org.hibernate</groupId>
