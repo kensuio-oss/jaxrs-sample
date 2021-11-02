@@ -1,35 +1,39 @@
 package io.kensu.collector.config;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class DamProcessEnvironment {
 
-//
-//    public String damIngestionUrl(){
-//        String serverHost = getOptEnv("DAM_INGESTION_URL", null);
-//        if (serverHost == null) {
-//            throw new RuntimeException("DAM_INGESTION_URL env var / java prop required when DAM is in online mode, e.g. https://localhost");
-//        }
-//        return serverHost;
-//    }
+    Properties properties;
 
-    public String damIngestionToken(){
-        String authToken = getOptEnv("DAM_AUTH_TOKEN", null);
+    public DamProcessEnvironment(Properties properties) {
+        this.properties = properties;
+    }
+
+    public String getKensuIngestionToken() {
+        String authToken = getOptEnvOrProp("KENSU_AUTH_TOKEN", "kensu.collector.api.token", null);
         if (authToken == null) {
-            throw new RuntimeException("DAM_AUTH_TOKEN env var / java prop required when DAM is in online mode");
+            throw new RuntimeException("KENSU_AUTH_TOKEN env var or kensu.collector.api.token java property must be provided");
         }
         return authToken;
     }
 
-    public String getProcessName(){
-        String serverProcessName = getOptEnv("DAM_PROCESS_NAME", "unknown process");
+    public String getKensuIngestionUrl() {
+        String authToken = getOptEnvOrProp("KENSU_ZIPKIN_ENDPOINT", "kensu.collector.api.url", null);
+        if (authToken == null) {
+            throw new RuntimeException("KENSU_ZIPKIN_ENDPOINT env var or kensu.collector.api.url java property must be provided");
+        }
+        return authToken;
+    }
+
+    public String getProcessName() {
+        String serverProcessName = getOptEnvOrProp("KENSU_PROCESS_NAME", "app.artifactId", "unknown process");
         String fullProcessName = String.format("%s", serverProcessName);
         return fullProcessName;
     }
 
-    public String getProcessLauncherUserRef(){
-        String userName = getOptEnv("DAM_USER_NAME", "");
+    public String getProcessLauncherUserRef() {
+        String userName = getOptEnvOrProp("KENSU_USER_NAME", "kensu.collector.run.user", System.getenv("USER"));
         return userName;
     }
 
@@ -39,32 +43,43 @@ public class DamProcessEnvironment {
         m.put("KENSU_LAUCHED_BY_USER", this.getProcessLauncherUserRef());
         m.put("KENSU_RUN_ENVIRONMENT", this.getRunEnvironment());
         m.put("KENSU_PROJECTS", this.getDamProjectRefs());
-        m.put("KENSU_CODEBASE_LOCATION", getOptEnv("DAM_CODEBASE_LOCATION", ""));
-        m.put("KENSU_CODE_VERSION", getOptEnv("DAM_CODE_VERSION", ""));
+        m.put("KENSU_CODEBASE_LOCATION", getCodebaseLocation());
+        m.put("KENSU_CODE_VERSION", getCodeVersion());
         return m;
     }
 
-    public String getRunEnvironment(){
-        return getOptEnv("DAM_RUN_ENVIRONMENT", "");
+    public String getCodebaseLocation() {
+        return getOptEnvOrProp("KENSU_CODEBASE_LOCATION", "git.remote.origin.url", "");
     }
 
-    public String getDamProjectRefs(){
-        String projectsStr = getOptEnv("DAM_PROJECTS", "");
-        return projectsStr;
-//        if (projectsStr != null){
-//            List<String> projects = Arrays.stream(projectsStr.trim()
-//                                            .split(";")).map(String::trim)
-//                                            .filter(e->e.length()>0)
-//                                            .collect(Collectors.toList());
-//            if (projects.size() == 0) return null;
-//            return projects;
-//        } else {
-//            return null;
-//        }
+    public String getCodeVersion() {
+        return getOptEnvOrDefault("KENSU_CODE_VERSION", this.properties.getProperty("app.version") + "_" + this.properties.getProperty("git.commit.id.describe-short"));
     }
 
-    protected String getOptEnv(String envName, String defaultValue){
-        String result = System.getProperty(envName, System.getenv(envName));
-        return (result == null) ? defaultValue : result;
+    public String getRunEnvironment() {
+        return getOptEnvOrProp("KENSU_RUN_ENVIRONMENT", "kensu.collector.run.env", "unknown");
     }
+
+    public String getDamProjectRefs() {
+        return getOptEnvOrProp("DAM_PROJECTS", "kensu.collector.run.projects", "");
+    }
+
+    public String getOptEnvOrProp(String envName, String propName, String defaultValue) {
+        String result = System.getenv(envName);
+        // we probably want environment variables to override the properties
+        if (result == null) {
+            return this.properties.getProperty(propName, defaultValue);
+        }
+        return result;
+    }
+
+    public String getOptEnvOrDefault(String envName, String defaultValue) {
+        String result = System.getenv(envName);
+        // we probably want environment variables to override the properties
+        if (result == null) {
+            return defaultValue;
+        }
+        return result;
+    }
+
 }

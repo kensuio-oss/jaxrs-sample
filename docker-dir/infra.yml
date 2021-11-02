@@ -37,7 +37,7 @@ services:
       # to zipkin
       DEBUGGING_ZIPKIN_ENDPOINT: http://host.docker.internal:9411/api/v1/spans
       # to kensu-ingestion:
-      ZIPKIN_ENDPOINT: http://host.docker.internal:9066/api/v1/spans
+      KENSU_ZIPKIN_ENDPOINT: http://host.docker.internal:9066/api/v1/spans
     volumes:
       - ./deployments/sample-service-1.3.0.war:/opt/jboss/wildfly/standalone/deployments/sample-service-1.3.0.war
     ports:

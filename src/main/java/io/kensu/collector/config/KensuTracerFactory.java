@@ -68,37 +68,26 @@ public class KensuTracerFactory implements TracerFactory {
             throw new RuntimeException(e);
         }
 
-        // FIXME: Need to send at least some of these values to Kensu ingestion
-        // FIXME: refactor...
-        System.setProperty("DAM_INGESTION_URL", properties.getProperty("kensu.collector.api.url"));
-        System.setProperty("DAM_AUTH_TOKEN", properties.getProperty("kensu.collector.api.token"));
-        System.setProperty("DAM_USER_NAME", properties.getProperty("kensu.collector.run.user", System.getenv("USER")));
-        System.setProperty("DAM_RUN_ENVIRONMENT", properties.getProperty("kensu.collector.run.env"));
-        System.setProperty("DAM_PROJECTS", properties.getProperty("kensu.collector.run.projects",""));
-        System.setProperty("DAM_PROCESS_NAME", properties.getProperty("app.artifactId"));
-        System.setProperty("DAM_CODEBASE_LOCATION", properties.getProperty("git.remote.origin.url"));
-        System.setProperty("DAM_CODE_VERSION", properties.getProperty("app.version")+"_"+properties.getProperty("git.commit.id.describe-short"));
-
-        DamProcessEnvironment damEnv = new DamProcessEnvironment();
-        Map<String, String> kensuAnnotations = damEnv.getKensuAnnotations();
+        DamProcessEnvironment kensuEnv = new DamProcessEnvironment(properties);
+        Map<String, String> kensuAnnotations = kensuEnv.getKensuAnnotations();
         Tracer backendTracer;
         try {
             // TODO Deal with existing reporter via Widlfy default-tracer for example
             System.setProperty("JAEGER_SERVICE_NAME", properties.getProperty("app.artifactId")); // properties are used first
-            // to use  Jaeger to report to Zipkin Server
-            String zipkinEndpointCfgKey = "ZIPKIN_ENDPOINT";
-            String kensuZipkinEndpoint = System.getProperty(zipkinEndpointCfgKey, System.getenv(zipkinEndpointCfgKey));
+            String kensuZipkinEndpoint =  kensuEnv.getKensuIngestionUrl();
+            String zipkinDebuggingEndpoint = kensuEnv.getOptEnvOrProp("DEBUGGING_ZIPKIN_ENDPOINT", "zipkin.collector.url", null);
+
+            Reporter kensuReporter =  buildZipkinReporter(
+                    kensuZipkinEndpoint,
+                    kensuEnv.getKensuIngestionToken(),
+                    kensuAnnotations);
+
+            Reporter debuggingReporter = null;
+            if (zipkinDebuggingEndpoint != null) {
+                debuggingReporter = buildZipkinReporter(zipkinDebuggingEndpoint, null, kensuAnnotations)
+            }
             // FIXME: check, maybe jaeger is not needed at all anymore, and we could use Zipkin Tracer directly?
-            io.jaegertracing.spi.Reporter zipkinReporter = new io.jaegertracing.internal.reporters.CompositeReporter(
-                    buildZipkinReporter(
-                            kensuZipkinEndpoint,
-                            damEnv.damIngestionToken(),
-                            kensuAnnotations),
-                    buildZipkinReporter(
-                            "http://host.docker.internal:9411/api/v1/spans",
-                            null,
-                            kensuAnnotations) // DEBUGGING_ZIPKIN_ENDPOINT
-            );
+            Reporter zipkinReporter = combineReporters(kensuReporter, debuggingReporter);
             // doesn't work well like that - doesn't pick up the settings (like sampling) from env it seams
             //  backendTracer = new JaegerTracer.Builder(serviceName).withReporter(zipkinReporter).build();
             backendTracer = Configuration.fromEnv().getTracerBuilder().withReporter(zipkinReporter).build();
@@ -117,6 +106,17 @@ public class KensuTracerFactory implements TracerFactory {
         return backendTracer;
         // it seems TracerR is not needed anymore (for now at least, as zipkin/jaeger reporter has a composite one)
         //Tracer javaTracer = new TracerR(backendTracer, kensuReporter, backendTracer.scopeManager());
+    }
+
+    private Reporter combineReporters(Reporter main, Reporter optional) {
+        if (optional == null) {
+            return main;
+        } else {
+            return new io.jaegertracing.internal.reporters.CompositeReporter(
+                    main,
+                    optional
+            );
+        }
     }
 
     private KensuJaegerSpanAnnotatingReporter buildZipkinReporter(String zipkinEndpoint,
