@@ -82,12 +82,12 @@ public class KensuTracerFactory implements TracerFactory {
                     kensuEnv.getKensuIngestionToken(),
                     kensuAnnotations);
 
-            Reporter debuggingReporter = null;
+            Reporter maybeDebuggingReporter = null;
             if (zipkinDebuggingEndpoint != null) {
-                debuggingReporter = buildZipkinReporter(zipkinDebuggingEndpoint, null, kensuAnnotations)
+                maybeDebuggingReporter = buildZipkinReporter(zipkinDebuggingEndpoint, null, kensuAnnotations);
             }
             // FIXME: check, maybe jaeger is not needed at all anymore, and we could use Zipkin Tracer directly?
-            Reporter zipkinReporter = combineReporters(kensuReporter, debuggingReporter);
+            Reporter zipkinReporter = combineReporters(kensuReporter, maybeDebuggingReporter);
             // doesn't work well like that - doesn't pick up the settings (like sampling) from env it seams
             //  backendTracer = new JaegerTracer.Builder(serviceName).withReporter(zipkinReporter).build();
             backendTracer = Configuration.fromEnv().getTracerBuilder().withReporter(zipkinReporter).build();
