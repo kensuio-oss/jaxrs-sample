@@ -1,114 +1,85 @@
 package io.kensu.collector.config;
 
-import io.kensu.collector.model.DamBatchBuilder;
-import io.kensu.dim.client.model.*;
-import io.kensu.dim.client.model.Process;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
 
 public class DamProcessEnvironment {
 
-    public boolean isOffline() {
-        boolean isOffline = getOptEnv("DAM_OFFLINE", "false").toLowerCase().equals("true");
-        // isOffline = true;
-        return isOffline;
+    Properties properties;
+
+    public DamProcessEnvironment(Properties properties) {
+        this.properties = properties;
     }
 
-    public String damIngestionUrl(){
-        String serverHost = getOptEnv("DAM_INGESTION_URL", null);
-        if (serverHost == null) {
-            throw new RuntimeException("DAM_INGESTION_URL env var / java prop required when DAM is in online mode, e.g. https://localhost");
-        }
-        return serverHost;
-    }
-
-    public String damIngestionToken(){
-        String authToken = getOptEnv("DAM_AUTH_TOKEN", null);
+    public String getKensuIngestionToken() {
+        String authToken = getOptEnvOrProp("KENSU_COLLECTOR_API_TOKEN", "kensu.collector.api.token", null);
         if (authToken == null) {
-            throw new RuntimeException("DAM_AUTH_TOKEN env var / java prop required when DAM is in online mode");
+            throw new RuntimeException("KENSU_COLLECTOR_API_TOKEN env var or kensu.collector.api.token java property must be provided");
         }
         return authToken;
     }
 
-    public Process enqueProcess(DamBatchBuilder batchBuilder){
-        String serverProcessName = getOptEnv("DAM_PROCESS_NAME", "unknown process");
+    public String getKensuIngestionUrl() {
+        String authToken = getOptEnvOrProp("KENSU_COLLECTOR_API_URL", "kensu.collector.api.url", null);
+        if (authToken == null) {
+            throw new RuntimeException("KENSU_COLLECTOR_API_URL env var or kensu.collector.api.url java property must be provided");
+        }
+        return authToken;
+    }
+
+    public String getProcessName() {
+        String serverProcessName = getOptEnvOrProp("KENSU_APP_ARTIFACT_ID", "app.artifactId", "unknown process");
         String fullProcessName = String.format("%s", serverProcessName);
-        Process process = new Process().pk(new ProcessPK().qualifiedName(fullProcessName));
-        batchBuilder.add(process);
-        return process;
+        return fullProcessName;
     }
 
-    public UserRef getProcessLauncherUserRef(DamBatchBuilder batchBuilder){
-        String userName = getOptEnv("DAM_USER_NAME", null);
-        if (userName != null){
-            User user = new User().pk(new UserPK().name(userName));
-            batchBuilder.add(user);
-            return new UserRef().byPK(user.getPk());
+    public String getProcessLauncherUserRef() {
+        String userName = getOptEnvOrProp("KENSU_COLLECTOR_RUN_USER", "kensu.collector.run.user", System.getenv("USER"));
+        return userName;
+    }
+
+    public Map<String, String> getKensuAnnotations() {
+        Map<String, String> m = new HashMap<>();
+        m.put("KENSU_PROCESS_NAME", this.getProcessName());
+        m.put("KENSU_LAUCHED_BY_USER", this.getProcessLauncherUserRef());
+        m.put("KENSU_RUN_ENVIRONMENT", this.getRunEnvironment());
+        m.put("KENSU_PROJECTS", this.getDamProjectRefs());
+        m.put("KENSU_CODEBASE_LOCATION", getCodebaseLocation());
+        m.put("KENSU_CODE_VERSION", getCodeVersion());
+        return m;
+    }
+
+    public String getCodebaseLocation() {
+        return getOptEnvOrProp("KENSU_CODEBASE_LOCATION", "git.remote.origin.url", "");
+    }
+
+    public String getCodeVersion() {
+        return getOptEnvOrDefault("KENSU_CODE_VERSION", this.properties.getProperty("app.version") + "_" + this.properties.getProperty("git.commit.id.describe-short"));
+    }
+
+    public String getRunEnvironment() {
+        return getOptEnvOrProp("KENSU_APP_RUN_ENV", "kensu.app.run.env", "unknown");
+    }
+
+    public String getDamProjectRefs() {
+        return getOptEnvOrProp("KENSU_APP_RUN_PROJECTS", "kensu.app.run.projects", "");
+    }
+
+    public String getOptEnvOrProp(String envName, String propName, String defaultValue) {
+        String result = System.getenv(envName);
+        // we probably want environment variables to override the properties
+        if (result == null) {
+            return this.properties.getProperty(propName, defaultValue);
         }
-        return null;
+        return result;
     }
 
-    public String getRunEnvironment(){
-        return getOptEnv("DAM_RUN_ENVIRONMENT", null);
-    }
-
-    public List<ProjectRef> getDamProjectRefs(DamBatchBuilder batchBuilder){
-        String projectsStr = getOptEnv("DAM_PROJECTS", null);
-        if (projectsStr != null){
-            List<String> projects = Arrays.stream(projectsStr.trim()
-                                            .split(";")).map(String::trim)
-                                            .filter(e->e.length()>0)
-                                            .collect(Collectors.toList());
-            if (projects.size() == 0) return null;
-            List<ProjectRef> projectRefs = new ArrayList<>();
-            for (String projectName: projects){
-                Project project = new Project().pk(new ProjectPK().name(projectName));
-                batchBuilder.add(project);
-                projectRefs.add(new ProjectRef().byPK(project.getPk()));
-            }
-            return projectRefs;
-        } else {
-            return null;
+    public String getOptEnvOrDefault(String envName, String defaultValue) {
+        String result = System.getenv(envName);
+        // we probably want environment variables to override the properties
+        if (result == null) {
+            return defaultValue;
         }
+        return result;
     }
 
-    public CodeVersionRef getExecutedCodeVersionRef(DamBatchBuilder batchBuilder) {
-        String codeBaseLocation = getOptEnv("DAM_CODEBASE_LOCATION", null);
-        String codeVersionValue = getOptEnv("DAM_CODE_VERSION", null);
-        if (codeBaseLocation != null && codeVersionValue != null) {
-            CodeBase codeBase = new CodeBase().pk(new CodeBasePK().location(codeBaseLocation));
-            CodeVersionPK codeVersionPK = new CodeVersionPK()
-                    .codebaseRef(new CodeBaseRef().byPK(codeBase.getPk()))
-                    .version(codeVersionValue);
-            CodeVersion codeVersion = new CodeVersion().pk(codeVersionPK);
-            batchBuilder.add(codeBase);
-            batchBuilder.add(codeVersion);
-            return new CodeVersionRef().byPK(codeVersionPK);
-        }
-        return null;
-    }
-
-    public ProcessRun enqueProcessRun(Process process,
-                                         String endpointName,
-                                         DamBatchBuilder batchBuilder) {
-        String processName = process.getPk().getQualifiedName();
-        ProcessRun processRun =  new ProcessRun()
-                .pk(new ProcessRunPK()
-                        .qualifiedName(String.format("%s :: %s run at %d", processName, endpointName, System.currentTimeMillis()))
-                        .processRef(new ProcessRef().byPK(process.getPk())))
-                .launchedByUserRef(getProcessLauncherUserRef(batchBuilder))
-                .environment(getRunEnvironment())
-                .projectsRefs(getDamProjectRefs(batchBuilder))
-                .executedCodeVersionRef(getExecutedCodeVersionRef(batchBuilder));
-        batchBuilder.add(processRun);
-        return processRun;
-    }
-
-    protected String getOptEnv(String envName, String defaultValue){
-        String result = System.getProperty(envName, System.getenv(envName));
-        return (result == null) ? defaultValue : result;
-    }
 }

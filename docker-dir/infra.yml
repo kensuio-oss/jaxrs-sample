@@ -1,0 +1,71 @@
+version: '3.1'
+services:
+  mysql:
+    image: mysql
+    container_name: kensu-mysql
+    command: --default-authentication-plugin=mysql_native_password
+    # also there are these options: --ssl --tls-version "TLSv1.2" / --skip-ssl
+    restart: always
+    environment:
+      # https://dev.mysql.com/doc/mysql-installation-excerpt/5.7/en/docker-mysql-more-topics.html
+      MYSQL_ROOT_PASSWORD: andy
+      MYSQL_USER: andy
+      MYSQL_PASSWORD: andy
+      MYSQL_DATABASE: classicmodels
+    volumes:
+      - "./init-mysql-data.sql:/docker-entrypoint-initdb.d/1.sql"
+
+    ports:
+      - 3306:3306
+
+  wildfly:
+    image: vidmasze/ksu-wildfly:ksu-wildfly-setup
+    container_name: ksu-wildfly
+    restart: unless-stopped
+    environment:
+      # JAEGER_AGENT_HOST defines hostname for reporting spans over UDP/Thrift. To avoid packet loss, the agent is expected to run on the same machine as the application. This var is useful when there are multiple networking namespaces on the host.
+      JAEGER_AGENT_HOST: host.docker.internal
+      JAEGER_AGENT_PORT: 6831
+      JAEGER_REPORTER_LOG_SPANS: "true"
+      # maybe setting system prop do not work?
+      JAEGER_SERVICE_NAME: jaxrs-sample
+      JAEGER_SAMPLER_TYPE: const
+      JAEGER_SAMPLER_PARAM: 1
+      JAVA_OPTS: "-Dhttps.protocols=TLSv1.2,TLSv1.3 -Djdk.tls.client.protocols=TLSv1.2,TLSv1.3"
+      # if using Jaeger directly, skip UDP (needed esp. for larger payloads)
+      # JAEGER_ENDPOINT: http://host.docker.internal:14268/api/traces
+      # to zipkin
+      DEBUGGING_ZIPKIN_ENDPOINT: http://host.docker.internal:9411/api/v1/spans
+      # to kensu-ingestion:
+      KENSU_COLLECTOR_API_TOKEN: "sometoken"
+      KENSU_COLLECTOR_API_URL: "http://host.docker.internal:9066/api/v1/spans"
+      # Environment in which the app runs
+      KENSU_APP_RUN_ENV: "TEST DOCKER ENV"
+      # optional, $USER will be used instead
+      # KENSU_COLLECTOR_RUN_USER: "app-runner"
+      # KENSU_APP_ARTIFACT_ID: ""
+      # (if multiple, separated by `;`)
+      KENSU_APP_RUN_PROJECTS: "docker-project1"
+      # KENSU_CODEBASE_LOCATION: ""
+      # KENSU_CODE_VERSION: ""
+    volumes:
+      - ./deployments/sample-service-1.3.0.war:/opt/jboss/wildfly/standalone/deployments/sample-service-1.3.0.war
+    ports:
+      - 8080:8080
+      # ui user: admin password: admin
+      - 9990:9990
+
+#  clickhouse:
+#    image: yandex/clickhouse-server
+#    container_name: ksu-clickhouse
+#    volumes:
+#      - ./01_clickhouse-init.sh:/docker-entrypoint-initdb.d/01_clickhouse-init.sh
+#      - ./clickhouse-schema.sql:/app/home/clickhouse-schema.sql
+#      - ./hits_v1.tsv:/app/home/hits_v1.tsv
+#      - ./visits_v1.tsv:/app/home/visits_v1.tsv
+#    ulimits:
+#      nofile:
+#        soft: 262144
+#        hard: 262144
+#    ports:
+#      - 8123:8123
