@@ -37,7 +37,17 @@ services:
       # to zipkin
       DEBUGGING_ZIPKIN_ENDPOINT: http://host.docker.internal:9411/api/v1/spans
       # to kensu-ingestion:
-      KENSU_ZIPKIN_ENDPOINT: http://host.docker.internal:9066/api/v1/spans
+      KENSU_COLLECTOR_API_TOKEN: "sometoken"
+      KENSU_COLLECTOR_API_URL: "http://host.docker.internal:9066/api/v1/spans"
+      # Environment in which the app runs
+      KENSU_APP_RUN_ENV: "TEST DOCKER ENV"
+      # optional, $USER will be used instead
+      # KENSU_COLLECTOR_RUN_USER: "app-runner"
+      # KENSU_APP_ARTIFACT_ID: ""
+      # (if multiple, separated by `;`)
+      KENSU_APP_RUN_PROJECTS: "docker-project1"
+      # KENSU_CODEBASE_LOCATION: ""
+      # KENSU_CODE_VERSION: ""
     volumes:
       - ./deployments/sample-service-1.3.0.war:/opt/jboss/wildfly/standalone/deployments/sample-service-1.3.0.war
     ports:
