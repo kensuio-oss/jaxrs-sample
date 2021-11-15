@@ -16,13 +16,13 @@ First run `./one-click-start-all-prebuilt.sh` (to start this app with MySQL & Zi
 - [http://127.0.0.1:8080/rest/v1/product-line/Ships](http://127.0.0.1:8080/rest/v1/product-line/Ships)
 - [http://127.0.0.1:8080/rest/v1/order-details/product-line/Ships?maxResults=17](http://127.0.0.1:8080/rest/v1/order-details/product-line/Ships?maxResults=17)
 
-This will trigger some metadata on data movement and data quality getting collected and sent to Zipkin and/or Kensu servers.
+This will trigger some metadata on data movement and data quality getting collected, and sent to Zipkin and/or Kensu servers.
 
 ### Check results: Zipkin & Kensu app
 
 If you have access to Kensu App, on its UI you may first check - data catalog, lineages, and projects.
 
-While, to understand the internals (debug the raw data sent), visit Zipkin at [http://127.0.0.1:9411/zipkin/?serviceName=sample-service](http://127.0.0.1:9411/zipkin/?serviceName=sample-service) and click on `Run query` - you'll see list of traces/spans that were sent, including info on: http request (url/params), SQL query & stats, and http response (json schema), like this:
+To understand the internals (debug the raw data sent), visit Zipkin at [http://127.0.0.1:9411/zipkin/?serviceName=sample-service](http://127.0.0.1:9411/zipkin/?serviceName=sample-service) and click on `Run query` - you'll see list of traces/spans that were sent, including info on: http request (url/params), SQL query & stats, and http response (json schema), like this:
 
 ![zipkin-screenshot](./docs/screenshots/sample-raw-data.png)
 
@@ -40,7 +40,7 @@ Starting Jax-Rs server for sample app (incl Wildflow & MySQL in docker):
 ./build-and-run-app.sh
 ```
 
-Then follow the same steps as in the instructions above
+Then, follow the same steps as in the instructions above.
 
 
 
