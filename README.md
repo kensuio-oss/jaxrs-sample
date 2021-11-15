@@ -7,7 +7,30 @@ The data lineages and data quality are tracked automatically between HTTP endpoi
 By default, the `Jaeger backend tracer + Zipkin reporter` is used to keep the spans published to a observability platform, this tracer is combined with the Kensu tracer to collect what is important for Kensu to build lineage and stats.
 
 
-Build and run
+One-click run all in Docker
+-----
+
+First run `./one-click-start-all-prebuilt.sh` (to start this app with MySQL & Zipkin inside a docker), and, after waiting a few minutes for it to start up, visit some of these endpoints:
+
+- [http://127.0.0.1:8080/rest/v1/product-line/Motorcycles](http://127.0.0.1:8080/rest/v1/product-line/Motorcycles)
+- [http://127.0.0.1:8080/rest/v1/product-line/Ships](http://127.0.0.1:8080/rest/v1/product-line/Ships)
+- [http://127.0.0.1:8080/rest/v1/order-details/product-line/Ships?maxResults=17](http://127.0.0.1:8080/rest/v1/order-details/product-line/Ships?maxResults=17)
+
+This will trigger some metadata on data movement and data quality getting collected and sent to Zipkin and/or Kensu servers.
+
+### Check results: Zipkin & Kensu app
+
+If you have access to Kensu App, on its UI you may first check - data catalog, lineages, and projects.
+
+While, to understand the internals (debug the raw data sent), visit Zipkin at [http://127.0.0.1:9411/zipkin/?serviceName=sample-service](http://127.0.0.1:9411/zipkin/?serviceName=sample-service) and click on `Run query` - you'll see list of traces/spans that were sent, including info on: http request (url/params), SQL query & stats, and http response (json schema), like this:
+
+![zipkin-screenshot](./docs/screenshots/sample-raw-data.png)
+
+
+That's it! All the rest info below is only for advanced techy users wanting to explore the internals.
+
+
+Build it yourself and run
 ------
 
 Starting Jax-Rs server for sample app (incl Wildflow & MySQL in docker):
@@ -17,30 +40,9 @@ Starting Jax-Rs server for sample app (incl Wildflow & MySQL in docker):
 ./build-and-run-app.sh
 ```
 
-
-Some endpoints working out of the box (enough to have just MySQL):
-
-- [http://127.0.0.1:8080/rest/v1/product-line/Motorcycles](http://127.0.0.1:8080/rest/v1/product-line/Motorcycles)
-- [http://127.0.0.1:8080/rest/v1/product-line/Ships](http://127.0.0.1:8080/rest/v1/product-line/Ships)
-- [http://127.0.0.1:8080/rest/v1/order-details/product-line/Ships?maxResults=17](http://127.0.0.1:8080/rest/v1/order-details/product-line/Ships?maxResults=17)
-
-Check on Kensu UI: data catalog, lineages, and projects.
+Then follow the same steps as in the instructions above
 
 
-Debugging
------
-
-ZIPKIN UI (optional, very useful for debugging raw Span data which was sent):
-- run `./docker-dir/start-zipkin.sh`
-- [http://127.0.0.1:9411/zipkin/](http://127.0.0.1:9411/zipkin/)
-
-Alternatively one could reconfigure it to use JAEGER:
-- Jaeger UI [http://localhost:16686/search](http://localhost:16686/search)
-
-
-```bash
-docker exec -it ksu-wildfly bash
-```
 
 # Technical details
 

@@ -14,9 +14,14 @@ services:
       MYSQL_DATABASE: classicmodels
     volumes:
       - "./init-mysql-data.sql:/docker-entrypoint-initdb.d/1.sql"
-
     ports:
       - 3306:3306
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: kensu-zipkin
+    ports:
+      - 9411:9411
 
   wildfly:
     image: vidmasze/ksu-wildfly:ksu-wildfly-setup
