@@ -4,7 +4,7 @@ EXPOSE 9990
 
 COPY --chown=jboss:jboss customization /opt/jboss/wildfly/customization/
 
-#COPY ./deployments/sample-service-1.3.0.war /opt/jboss/wildfly/standalone/deployments/
+#COPY ./deployments/sample-service-1.3.1.war /opt/jboss/wildfly/standalone/deployments/
 
 RUN ["/opt/jboss/wildfly/bin/add-user.sh", "admin", "admin", "--silent"]
 

@@ -286,10 +286,10 @@ This will compile, run the unit tests, and create a war file that can be deploye
 
 The `war` file:
 
-* will be created somewhere like `target/sample-service-1.3.0.war` (sensitive to `artifactId` and `version` 
+* will be created somewhere like `target/sample-service-1.3.1.war` (sensitive to `artifactId` and `version`
   changes in `pom.xml`...).
 * can be published to the `wildfly` standalone deployments folder:
-  * manually: `cp target/sample-service-1.3.0.war ${wilxfly.home}/standalone/deployments`
+  * manually: `cp target/sample-service-1.3.1.war ${wilxfly.home}/standalone/deployments`
   * automatically using a `maven profile` see [Settings.xml](#Settings.xml)
 
 ## SSL (on kensu servers)

@@ -1,2 +1,2 @@
 # p.s. wildfly inside docker will reload the new version automatically from the deployments dir...
-mvn clean package && cp target/sample-service-1.3.0.war docker-dir/deployments/
+mvn clean package && cp target/sample-service-1.3.1.war docker-dir/deployments/
