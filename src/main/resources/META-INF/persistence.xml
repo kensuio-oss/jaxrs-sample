@@ -51,7 +51,7 @@
         <class>io.kensu.example.jboss.model.entities.OrderDetails</class>
         <properties>
             <property name="javax.persistence.jdbc.driver" value="io.opentracing.contrib.jdbc.TracingDriver" />
-            <property name="javax.persistence.jdbc.url" value="jdbc:tracing:mysql://host.docker.internal:3306/classicmodels?enabledTLSProtocols=TLSv1.2" />
+            <property name="javax.persistence.jdbc.url" value="jdbc:tracing:mysql://host.docker.internal:33061/classicmodels?enabledTLSProtocols=TLSv1.2" />
             <property name="javax.persistence.jdbc.user" value="andy" />
             <property name="javax.persistence.jdbc.password" value="andy" />
             <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect"/>
